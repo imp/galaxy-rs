@@ -38,7 +38,11 @@ impl Galaxy {
         let id = PlanetId(self.next_planet_id);
         self.next_planet_id += 1;
 
-        let planet = Planet::new(id, position, size, owner);
+        let planet = if let Some(owner_id) = owner {
+            Planet::new_home_planet(id, position, size, owner_id)
+        } else {
+            Planet::new(id, position, size, owner)
+        };
         self.planets.insert(id, planet);
         id
     }

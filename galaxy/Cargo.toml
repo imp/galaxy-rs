@@ -1,13 +1,16 @@
 [package]
 name = "galaxy"
+
 version.workspace = true
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
 
+
 [dependencies]
-bevy = "0.15"
-rand = "0.8"
+bevy.workspace = true
+rand.workspace = true
+
 
 [lints]
 workspace = true

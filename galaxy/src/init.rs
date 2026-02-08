@@ -54,11 +54,17 @@ pub fn initialize_game(config: GameConfig) -> GameState {
         game.add_race(race_name, planet_id.0);
     }
 
-    // Create remaining planets (random size 10-300)
+    // Create remaining planets (random size 10-300, random resources 0.01-10.00)
     for i in config.num_races..config.num_planets {
         let position = planet_positions[i as usize];
         let size = rng.gen_range(10..=300);
-        game.galaxy_mut().add_planet(position, size, None);
+        let planet_id = game.galaxy_mut().add_planet(position, size, None);
+
+        // Set random resources (average 1.0)
+        let resources = rng.gen_range(0.01..=10.0);
+        if let Some(planet) = game.galaxy_mut().get_planet_mut(planet_id) {
+            planet.set_resources(resources);
+        }
     }
 
     game

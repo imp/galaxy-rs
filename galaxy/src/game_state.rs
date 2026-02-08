@@ -101,6 +101,15 @@ impl GameState {
 
         // 4. Process combat encounters
         self.process_combat();
+
+        // 5. Grow population on all planets
+        self.process_population_growth();
+    }
+
+    fn process_population_growth(&mut self) {
+        for planet in self.galaxy.planets_mut() {
+            planet.grow_population();
+        }
     }
 
     fn process_technology_advancement(&mut self) {

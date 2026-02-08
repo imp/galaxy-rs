@@ -11,6 +11,8 @@ license = "MIT OR Apache-2.0"
 
 
 [workspace.dependencies]
+bevy = "0.15"
+rand = "0.8"
 
 
 [workspace.lints.clippy]

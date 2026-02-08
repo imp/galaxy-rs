@@ -48,7 +48,12 @@ pub struct Planet {
     position: Position,
     size: u32,
     owner: Option<u32>, // Race ID
+    population: f64,
+    industry: f64,
+    resources: f64,
     materials: f64,
+    capital: f64,
+    colonists: f64,
     tech_focus: TechFocus,
 }
 
@@ -60,7 +65,30 @@ impl Planet {
             position,
             size,
             owner,
+            population: 0.0,
+            industry: 0.0,
+            resources: 1.0,
             materials: 0.0,
+            capital: 0.0,
+            colonists: 0.0,
+            tech_focus: TechFocus::None,
+        }
+    }
+
+    /// Create a home planet (fully populated, resources 10.0)
+    pub fn new_home_planet(id: PlanetId, position: Position, size: u32, owner: u32) -> Self {
+        let size_f = size as f64;
+        Self {
+            id,
+            position,
+            size,
+            owner: Some(owner),
+            population: size_f,
+            industry: size_f,
+            resources: 10.0,
+            materials: 0.0,
+            capital: 0.0,
+            colonists: 0.0,
             tech_focus: TechFocus::None,
         }
     }
@@ -89,6 +117,30 @@ impl Planet {
         self.materials
     }
 
+    pub fn capital(&self) -> f64 {
+        self.capital
+    }
+
+    pub fn colonists(&self) -> f64 {
+        self.colonists
+    }
+
+    pub fn population(&self) -> f64 {
+        self.population
+    }
+
+    pub fn industry(&self) -> f64 {
+        self.industry
+    }
+
+    pub fn resources(&self) -> f64 {
+        self.resources
+    }
+
+    pub fn set_resources(&mut self, resources: f64) {
+        self.resources = resources;
+    }
+
     pub fn tech_focus(&self) -> TechFocus {
         self.tech_focus
     }
@@ -97,9 +149,56 @@ impl Planet {
         self.tech_focus = focus;
     }
 
-    /// Calculate material production per turn based on planet size
+    /// Calculate production capacity: Industry + (Population - Industry)/4
+    pub fn production(&self) -> f64 {
+        self.industry + (self.population - self.industry) / 4.0
+    }
+
+    /// Grow population by 8% per turn, capped by planet size
+    pub fn grow_population(&mut self) {
+        if self.owner.is_none() {
+            return;
+        }
+
+        const GROWTH_RATE: f64 = 0.08;
+        let new_population = self.population * (1.0 + GROWTH_RATE);
+        let max_population = self.size as f64;
+
+        if new_population <= max_population {
+            self.population = new_population;
+        } else {
+            // Excess population becomes colonists (8 population = 1 colonist)
+            let excess = new_population - max_population;
+            self.colonists += excess / 8.0;
+            self.population = max_population;
+        }
+
+        // Grow industry if we have capital (independent of population growth)
+        if self.capital > 0.0 && self.industry < self.population {
+            let capital_to_use = (self.population - self.industry).min(self.capital);
+            self.industry += capital_to_use;
+            self.capital -= capital_to_use;
+        }
+    }
+
+    /// Add materials to stockpile
+    pub fn add_materials(&mut self, amount: f64) {
+        self.materials += amount;
+    }
+
+    /// Add capital to stockpile
+    pub fn add_capital(&mut self, amount: f64) {
+        self.capital += amount;
+    }
+
+    /// Add colonists to stockpile
+    pub fn add_colonists(&mut self, amount: f64) {
+        self.colonists += amount;
+    }
+
+    /// Calculate material production per turn: production × resources
     pub fn material_production(&self) -> f64 {
-        self.size as f64
+        self.production() * self.resources
     }
 
     /// Produce materials for this turn
@@ -109,10 +208,20 @@ impl Planet {
         }
     }
 
-    /// Consume materials for ship construction
+    /// Consume materials for ship construction or capital production
     pub fn consume_materials(&mut self, amount: f64) -> bool {
         if self.materials >= amount {
             self.materials -= amount;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Consume capital
+    pub fn consume_capital(&mut self, amount: f64) -> bool {
+        if self.capital >= amount {
+            self.capital -= amount;
             true
         } else {
             false
@@ -126,4 +235,107 @@ impl Planet {
 pub enum TechFocus {
     None,
     Research(TechnologyType),
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_population_growth() {
+        let mut planet = Planet::new_home_planet(
+            PlanetId(1),
+            Position::new(100.0, 100.0),
+            200,  // Size larger than population
+            0,
+        );
+
+        // Set starting population below size
+        planet.population = 100.0;
+        planet.industry = 100.0;
+        
+        // Grow population (8% growth)
+        planet.grow_population();
+        assert!((planet.population() - 108.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_population_excess_becomes_colonists() {
+        let mut planet = Planet::new_home_planet(
+            PlanetId(1),
+            Position::new(100.0, 100.0),
+            100,  // Size = population
+            0,
+        );
+
+        assert_eq!(planet.population(), 100.0);
+        assert_eq!(planet.colonists(), 0.0);
+        
+        // Population is at size, so growth should create colonists
+        planet.grow_population();
+        assert_eq!(planet.population(), 100.0); // Capped at size
+        assert!(planet.colonists() > 0.0); // Excess became colonists (108-100)/8 = 1.0
+        assert!((planet.colonists() - 1.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_production_formula() {
+        let mut planet = Planet::new_home_planet(
+            PlanetId(1),
+            Position::new(100.0, 100.0),
+            500,
+            0,
+        );
+
+        // Production = Industry + (Population - Industry) / 4
+        // With 500 pop and 500 ind: 500 + 0 = 500
+        assert_eq!(planet.production(), 500.0);
+
+        // Manually set different values
+        planet.population = 500.0;
+        planet.industry = 250.0;
+        // With 500 pop and 250 ind: 250 + 250/4 = 312.5
+        assert_eq!(planet.production(), 312.5);
+    }
+
+    #[test]
+    fn test_material_production_with_resources() {
+        let mut planet = Planet::new_home_planet(
+            PlanetId(1),
+            Position::new(100.0, 100.0),
+            100,
+            0,
+        );
+
+        // Home planet has resources 10.0, production 100.0
+        // Material production = 100.0 * 10.0 = 1000.0
+        assert_eq!(planet.material_production(), 1000.0);
+
+        // Change resources
+        planet.set_resources(5.0);
+        assert_eq!(planet.material_production(), 500.0);
+    }
+
+    #[test]
+    fn test_capital_increases_industry() {
+        let mut planet = Planet::new_home_planet(
+            PlanetId(1),
+            Position::new(100.0, 100.0),
+            500,
+            0,
+        );
+
+        planet.population = 500.0;
+        planet.industry = 200.0;
+        planet.add_capital(100.0);
+
+        // Growing should use capital to increase industry (up to population level)
+        planet.grow_population();
+        
+        // Industry should have increased toward population
+        assert!(planet.industry() > 200.0);
+        // Some capital should have been used
+        assert!(planet.capital() < 100.0);
+    }
 }

@@ -23,6 +23,10 @@ Prefer `#[expect(...)]` over `#[allow(...)]`
 **Why?** `#[expect()]` will warn you when the lint condition no longer applies,
 making it easy to spot and remove unneeded attributes. This keeps the codebase clean.
 
+### Dependencies
+Prefer workspace dependencies over local dependencies.
+
+
 **Strategy:**
 1. Remove all `#[allow(dead_code)]` attributes
 2. Run clippy to see what's actually unused
