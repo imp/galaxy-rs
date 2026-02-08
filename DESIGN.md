@@ -8,6 +8,9 @@ All the initially populated planets are of equal size (100 units). All other pla
 The simulation starts with a predefined number of races, randomly spread across the whole galaxy.
 Each race can build ships to explore the galaxy. Each ship contains a space drive, a number of phase cannons and a weapon shield.
 
+## The game space
+The simulated game space is a 2 dimensional space. For the purpose of this simulation the size of the planet is negligible compared to the size of the galaxy.
+
 ## Gameplay
 The gameplay revolves around the development of the races and their exploration of the galaxy.
 Each race can build ships to explore the galaxy. Each ship contains a space drive, a number of phase cannons and a weapon shield.
@@ -37,6 +40,7 @@ The more powerful the cannon, the more damage it can inflict on an enemy ship wh
 Races can order the ship they build on their planets to travel to other planets.
 Whenever traveling ship arrives on uninhabited planet, the race is colonizing the planet.
 When the ship arrives on a planet that is already inhabited, the relationship between the races determines what happens next.
+Space ships can only travel between different planets and cannot target an arbitrary point in space.
 
 ### Races relationships
 Relationship of a given race to any other race can be one of the three following:

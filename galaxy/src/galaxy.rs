@@ -1,0 +1,81 @@
+use crate::planet::{Planet, PlanetId, Position};
+use std::collections::HashMap;
+
+/// The galaxy containing all planets
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct Galaxy {
+    planets: HashMap<PlanetId, Planet>,
+    next_planet_id: u32,
+    pub width: f64,
+    pub height: f64,
+}
+
+impl Galaxy {
+    pub fn new(width: f64, height: f64) -> Self {
+        Self {
+            planets: HashMap::new(),
+            next_planet_id: 0,
+            width,
+            height,
+        }
+    }
+
+    /// Add a planet to the galaxy
+    pub fn add_planet(&mut self, position: Position, size: u32, owner: Option<u32>) -> PlanetId {
+        let id = PlanetId(self.next_planet_id);
+        self.next_planet_id += 1;
+        
+        let planet = Planet::new(id, position, size, owner);
+        self.planets.insert(id, planet);
+        id
+    }
+
+    /// Get a planet by ID
+    pub fn get_planet(&self, id: PlanetId) -> Option<&Planet> {
+        self.planets.get(&id)
+    }
+
+    /// Get a mutable reference to a planet
+    #[allow(dead_code)]
+    pub fn get_planet_mut(&mut self, id: PlanetId) -> Option<&mut Planet> {
+        self.planets.get_mut(&id)
+    }
+
+    /// Get all planets
+    #[allow(dead_code)]
+    pub fn planets(&self) -> impl Iterator<Item = &Planet> {
+        self.planets.values()
+    }
+
+    /// Get all planets (mutable)
+    #[allow(dead_code)]
+    pub fn planets_mut(&mut self) -> impl Iterator<Item = &mut Planet> {
+        self.planets.values_mut()
+    }
+
+    /// Get planets owned by a specific race
+    #[allow(dead_code)]
+    pub fn planets_owned_by(&self, race_id: u32) -> impl Iterator<Item = &Planet> {
+        self.planets.values().filter(move |p| p.owner == Some(race_id))
+    }
+
+    /// Get uninhabited planets
+    #[allow(dead_code)]
+    pub fn uninhabited_planets(&self) -> impl Iterator<Item = &Planet> {
+        self.planets.values().filter(|p| p.owner.is_none())
+    }
+
+    /// Count planets owned by a race
+    #[allow(dead_code)]
+    pub fn count_planets_owned_by(&self, race_id: u32) -> usize {
+        self.planets_owned_by(race_id).count()
+    }
+
+    /// Process material production for all planets
+    pub fn produce_materials(&mut self) {
+        for planet in self.planets.values_mut() {
+            planet.produce_materials();
+        }
+    }
+}
