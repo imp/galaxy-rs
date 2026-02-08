@@ -155,8 +155,8 @@ mod tests {
         let mut mutual_destruction = 0;
 
         for _ in 0..100 {
-            let mut ship1 = Ship::new(ShipId(0), RaceId(0), design1.clone(), PlanetId(0));
-            let mut ship2 = Ship::new(ShipId(1), RaceId(1), design2.clone(), PlanetId(1));
+            let mut ship1 = Ship::new(ShipId(0), RaceId(0), design1, PlanetId(0));
+            let mut ship2 = Ship::new(ShipId(1), RaceId(1), design2, PlanetId(1));
 
             let result = CombatSystem::resolve_combat(&mut ship1, &tech, &mut ship2, &tech);
 
@@ -173,7 +173,7 @@ mod tests {
 
         // With equal ships and probabilistic combat, we should see varied outcomes
         // Due to randomness, at least 2 different outcomes should occur
-        let total_outcomes = vec![
+        let total_outcomes = [
             attacker_wins,
             defender_wins,
             both_survive,
@@ -200,8 +200,8 @@ mod tests {
         let mut strong_wins = 0;
 
         for _ in 0..20 {
-            let mut strong = Ship::new(ShipId(0), RaceId(0), strong_design.clone(), PlanetId(0));
-            let mut weak = Ship::new(ShipId(1), RaceId(1), weak_design.clone(), PlanetId(1));
+            let mut strong = Ship::new(ShipId(0), RaceId(0), strong_design, PlanetId(0));
+            let mut weak = Ship::new(ShipId(1), RaceId(1), weak_design, PlanetId(1));
 
             let result = CombatSystem::resolve_combat(&mut strong, &tech, &mut weak, &tech);
 
@@ -227,8 +227,8 @@ mod tests {
         let mut high_tech_wins = 0;
 
         for _ in 0..20 {
-            let mut ship1 = Ship::new(ShipId(0), RaceId(0), design.clone(), PlanetId(0));
-            let mut ship2 = Ship::new(ShipId(1), RaceId(1), design.clone(), PlanetId(1));
+            let mut ship1 = Ship::new(ShipId(0), RaceId(0), design, PlanetId(0));
+            let mut ship2 = Ship::new(ShipId(1), RaceId(1), design, PlanetId(1));
 
             let result =
                 CombatSystem::resolve_combat(&mut ship1, &tech_high, &mut ship2, &tech_low);
@@ -249,8 +249,8 @@ mod tests {
 
         let tech = Technology::new();
 
-        let mut ship1 = Ship::new(ShipId(0), RaceId(0), design.clone(), PlanetId(0));
-        let mut ship2 = Ship::new(ShipId(1), RaceId(1), design.clone(), PlanetId(1));
+        let mut ship1 = Ship::new(ShipId(0), RaceId(0), design, PlanetId(0));
+        let mut ship2 = Ship::new(ShipId(1), RaceId(1), design, PlanetId(1));
 
         let result = CombatSystem::resolve_combat(&mut ship1, &tech, &mut ship2, &tech);
 

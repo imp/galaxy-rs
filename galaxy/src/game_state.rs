@@ -584,7 +584,7 @@ mod tests {
 
         // Add ships from race 1 and race 2 at the planet
         let design = ShipDesign::new(1.0, 1, 2.0, 2.0, 0.0);
-        let ship1 = Ship::new(ShipId(1), RaceId(1), design.clone(), planet_id);
+        let ship1 = Ship::new(ShipId(1), RaceId(1), design, planet_id);
         let ship2 = Ship::new(ShipId(2), RaceId(2), design, planet_id);
         game.ships.insert(ShipId(1), ship1);
         game.ships.insert(ShipId(2), ship2);
