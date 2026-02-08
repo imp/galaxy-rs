@@ -1,10 +1,10 @@
 ✓ galaxy-6pc [P1] [task] - Racebot AI Decision System
 ✓ galaxy-69v [P1] [task] [economics enhancement galaxyng] - Planet Resources and Production System
 ✓ galaxy-bv8 [P1] [task] [economics enhancement galaxyng] - Population and Industry System
-○ galaxy-pwh [● P2] [task] - Racebot Integration and Testing
+✓ galaxy-pwh [P2] [task] - Racebot Integration and Testing
 ✓ galaxy-tij [P2] [task] - Racebot Behavioral Personalities
-○ galaxy-0ti [● P2] [task] [combat enhancement galaxyng] - Probabilistic Combat System
-○ galaxy-z2i [● P2] [task] [enhancement galaxyng logistics] - Cargo System
+◐ galaxy-0ti [● P2] [task] [combat enhancement galaxyng] - Probabilistic Combat System
+✓ galaxy-z2i [P2] [task] [enhancement galaxyng logistics] - Cargo System
 ✓ galaxy-6ro [P2] [task] [enhancement galaxyng ships] - GalaxyNG Ship Formulas
 ✓ galaxy-a3a [P2] [task] - Bevy Integration and Rendering
 ✓ galaxy-kcz [P2] [task] - Game Initialization System

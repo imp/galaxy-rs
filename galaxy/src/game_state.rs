@@ -182,7 +182,6 @@ impl GameState {
 
     /// Run the game simulation for a maximum number of turns
     /// Returns the winning race or None if no victory by max_turns
-
     pub fn run_simulation(&mut self, max_turns: u32) -> Option<RaceId> {
         for _ in 0..max_turns {
             self.advance_turn();
@@ -230,13 +229,11 @@ impl GameState {
     }
 
     /// Get all ships
-
     pub fn ships(&self) -> impl Iterator<Item = &Ship> {
         self.ships.values()
     }
 
     /// Order a ship to travel to a destination planet
-
     pub fn order_ship_travel(&mut self, ship_id: ShipId, destination: PlanetId) -> bool {
         let ship = match self.ships.get_mut(&ship_id) {
             Some(s) => s,
@@ -365,24 +362,21 @@ impl GameState {
             let mut ship1 = self.ships.remove(&ship1_id).unwrap();
             let mut ship2 = self.ships.remove(&ship2_id).unwrap();
 
-            // Get weapon technology for both races
-            let ship1_weapons_tech = self
+            // Get technology for both races
+            let default_tech = crate::race::Technology::new();
+            let ship1_tech = self
                 .races
                 .get(&ship1.owner())
-                .map_or(1.0, |r| r.technology().weapon_level() as f64);
+                .map_or(&default_tech, |r| r.technology());
 
-            let ship2_weapons_tech = self
+            let ship2_tech = self
                 .races
                 .get(&ship2.owner())
-                .map_or(1.0, |r| r.technology().weapon_level() as f64);
+                .map_or(&default_tech, |r| r.technology());
 
             // Resolve combat
-            let result = CombatSystem::resolve_combat(
-                &mut ship1,
-                ship1_weapons_tech,
-                &mut ship2,
-                ship2_weapons_tech,
-            );
+            let result =
+                CombatSystem::resolve_combat(&mut ship1, ship1_tech, &mut ship2, ship2_tech);
 
             // Put survivors back
             if result.attacker_survived {

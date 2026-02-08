@@ -207,7 +207,7 @@ impl Ship {
 
     /// Unload cargo from ship (returns amount actually unloaded)
     pub fn unload_cargo(&mut self, cargo_type: CargoType, amount: f64) -> f64 {
-        let to_unload = match cargo_type {
+        match cargo_type {
             CargoType::Colonists => {
                 let unload = amount.min(self.cargo_colonists);
                 self.cargo_colonists -= unload;
@@ -223,9 +223,7 @@ impl Ship {
                 self.cargo_capital -= unload;
                 unload
             }
-        };
-
-        to_unload
+        }
     }
 
     /// Get cargo amount by type
