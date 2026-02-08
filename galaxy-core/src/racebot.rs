@@ -89,8 +89,14 @@ impl Personality {
     }
 
     /// Should aggressively colonize?
-    fn colonization_priority(&self) -> bool {
-        matches!(self, Self::Expansionist | Self::Economic | Self::Balanced)
+    fn colonization_priority(&self) -> f64 {
+        match self {
+            Self::Aggressive => 0.3,   // Low priority - prefers military
+            Self::Defensive => 0.5,    // Medium - wants buffer zones
+            Self::Expansionist => 1.0, // High - primary goal
+            Self::Economic => 0.8,     // High - needs production
+            Self::Balanced => 0.6,     // Medium-high
+        }
     }
 
     /// Should seek combat?
@@ -243,13 +249,30 @@ impl Racebot {
     ) -> Vec<ShipMovement> {
         let mut movements = Vec::new();
 
-        // Only colonize if personality prioritizes it
-        if !self.personality.colonization_priority() {
+        // All personalities colonize, but with different priorities
+        let colonization_chance = self.personality.colonization_priority();
+
+        // Aggressive/Defensive: only send ships if we have enough military strength
+        let min_ships_before_colonizing = match self.personality {
+            Personality::Aggressive => 2, // Build a couple warships first
+            Personality::Defensive => 1,  // At least one defensive ship
+            _ => 0,                       // Others colonize immediately
+        };
+
+        if state.owned_ships.len() < min_ships_before_colonizing {
             return movements;
         }
 
+        // Calculate how many ships to send based on colonization priority
+        let ships_to_send = (state.owned_ships.len() as f64 * colonization_chance).ceil() as usize;
+        let mut sent_count = 0;
+
         // Send idle ships to colonize nearest unowned planet
         for ship_id in &state.owned_ships {
+            if sent_count >= ships_to_send {
+                break;
+            }
+
             if let Some(ship) = ships.get(ship_id) {
                 // Only move ships that are at a planet (not traveling)
                 if let ShipLocation::AtPlanet(current_planet) = ship.location() {
@@ -261,6 +284,7 @@ impl Racebot {
                             ship_id: *ship_id,
                             destination: target,
                         });
+                        sent_count += 1;
                     }
                 }
             }
@@ -476,7 +500,7 @@ mod tests {
 
         let design = Personality::Defensive.design_ship(race);
         assert!(design.shields_mass() > design.weapons_mass());
-        assert!(!Personality::Defensive.colonization_priority());
+        assert!(Personality::Defensive.colonization_priority() > 0.0);
     }
 
     #[test]
@@ -493,7 +517,7 @@ mod tests {
         let design = Personality::Expansionist.design_ship(race);
         assert!(design.cargo_mass() > 0.0);
         assert_eq!(design.attacks(), 0);
-        assert!(Personality::Expansionist.colonization_priority());
+        assert_eq!(Personality::Expansionist.colonization_priority(), 1.0);
         assert!(Personality::Expansionist.ships_per_planet_ratio() > 2.0);
     }
 
