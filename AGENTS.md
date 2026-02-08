@@ -17,6 +17,40 @@ bd sync               # Sync with git
 `cargo clippy --workspace --all-targets -- -D warnings`
 `cargo test --workspace`
 
+## Cargo.toml Style
+
+Follow this pattern for all `Cargo.toml` files:
+
+1. **Blank lines between sections** for readability
+2. **Workspace dependencies** - define all dependencies in workspace root, including local crates
+3. **Use `.workspace = true`** for all dependencies in member crates
+
+Example workspace root:
+```toml
+[workspace.dependencies]
+bevy = "0.15"
+rand = "0.8"
+
+# Local dependencies
+galaxy-core = { path = "galaxy-core" }
+```
+
+Example member crate:
+```toml
+[package]
+name = "galaxy"
+
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bevy.workspace = true
+galaxy-core.workspace = true
+
+[lints]
+workspace = true
+```
+
 ### Clippy attributes
 Prefer `#[expect(...)]` over `#[allow(...)]`
 
