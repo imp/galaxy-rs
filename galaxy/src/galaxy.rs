@@ -63,7 +63,6 @@ impl Galaxy {
     }
 
     /// Get all planets (mutable)
-    #[allow(dead_code)]
     pub fn planets_mut(&mut self) -> impl Iterator<Item = &mut Planet> {
         self.planets.values_mut()
     }
@@ -76,7 +75,6 @@ impl Galaxy {
     }
 
     /// Get uninhabited planets
-    #[allow(dead_code)]
     pub fn uninhabited_planets(&self) -> impl Iterator<Item = &Planet> {
         self.planets.values().filter(|p| p.owner().is_none())
     }

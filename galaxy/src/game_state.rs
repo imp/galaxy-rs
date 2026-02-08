@@ -30,7 +30,6 @@ pub struct GameState {
     turn: u32,
 }
 
-#[allow(dead_code)]
 impl GameState {
     pub fn new(galaxy_width: f64, galaxy_height: f64) -> Self {
         Self {
@@ -164,7 +163,6 @@ impl GameState {
     }
 
     /// Check victory conditions - returns the winning race if any
-    #[allow(dead_code)]
     pub fn check_victory(&self) -> Option<RaceId> {
         let mut max_planets = 0;
         let mut winner = None;
@@ -184,7 +182,7 @@ impl GameState {
 
     /// Run the game simulation for a maximum number of turns
     /// Returns the winning race or None if no victory by max_turns
-    #[allow(dead_code)]
+
     pub fn run_simulation(&mut self, max_turns: u32) -> Option<RaceId> {
         for _ in 0..max_turns {
             self.advance_turn();
@@ -232,13 +230,13 @@ impl GameState {
     }
 
     /// Get all ships
-    #[allow(dead_code)]
+
     pub fn ships(&self) -> impl Iterator<Item = &Ship> {
         self.ships.values()
     }
 
     /// Order a ship to travel to a destination planet
-    #[allow(dead_code)]
+
     pub fn order_ship_travel(&mut self, ship_id: ShipId, destination: PlanetId) -> bool {
         let ship = match self.ships.get_mut(&ship_id) {
             Some(s) => s,

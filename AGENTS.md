@@ -78,3 +78,26 @@ Use it instead of `#[allow()]` to get automatic cleanup warnings.
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
+
+## Code Quality Guidelines
+
+### Dead Code Annotations
+
+**Rule: Prefer `#[expect(dead_code)]` over `#[allow(dead_code)]`**
+
+- `#[expect(dead_code)]` warns when code becomes used (self-documenting, fails fast)
+- `#[allow(dead_code)]` silences warnings permanently (use only when expect causes issues)
+
+**Exception Cases:**
+1. **Enum variants used only in tests**: Use `#[allow(dead_code)]` on enum to avoid unfulfilled-lint-expectations
+   - Example: `Personality` enum used in integration tests but not in main binary
+2. **Lib/binary split**: When methods are used in lib/tests but not in binary:
+   - Library code should NOT have dead_code warnings if used anywhere in the project
+   - Binary-only dead code should be marked with `#[expect(dead_code)]`
+   - When code becomes used, the `#[expect(dead_code)]` will trigger unfulfilled-lint-expectations - remove the attribute
+
+**Workflow when `#[expect(dead_code)]` becomes unfulfilled:**
+1. Compilation fails with "unfulfilled lint expectation"
+2. This means the code IS now being used
+3. Simply REMOVE the `#[expect(dead_code)]` attribute
+4. The code is no longer dead, so no annotation needed

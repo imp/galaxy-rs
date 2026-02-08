@@ -65,7 +65,6 @@ impl Diplomacy {
     }
 
     /// Check if two races are friendly
-    #[allow(dead_code)]
     pub fn are_friendly(&self, race1: RaceId, race2: RaceId) -> bool {
         self.get_relationship(race1, race2) == Relationship::Friendly
     }

@@ -12,11 +12,11 @@ impl std::fmt::Display for RaceId {
 
 /// Technology types that can be advanced
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
-#[allow(dead_code)]
 pub enum TechnologyType {
     Drive,
     Weapon,
     Shield,
+    Cargo,
 }
 
 /// Technology levels for a race
@@ -25,15 +25,16 @@ pub struct Technology {
     drive_level: u32,
     weapon_level: u32,
     shield_level: u32,
+    cargo_level: u32,
 }
 
-#[allow(dead_code)]
 impl Technology {
     pub fn new() -> Self {
         Self {
             drive_level: 1,
             weapon_level: 1,
             shield_level: 1,
+            cargo_level: 1,
         }
     }
 
@@ -49,11 +50,16 @@ impl Technology {
         self.shield_level
     }
 
+    pub fn cargo_level(&self) -> u32 {
+        self.cargo_level
+    }
+
     pub fn get_level(&self, tech_type: TechnologyType) -> u32 {
         match tech_type {
             TechnologyType::Drive => self.drive_level,
             TechnologyType::Weapon => self.weapon_level,
             TechnologyType::Shield => self.shield_level,
+            TechnologyType::Cargo => self.cargo_level,
         }
     }
 
@@ -62,6 +68,7 @@ impl Technology {
             TechnologyType::Drive => self.drive_level += 1,
             TechnologyType::Weapon => self.weapon_level += 1,
             TechnologyType::Shield => self.shield_level += 1,
+            TechnologyType::Cargo => self.cargo_level += 1,
         }
     }
 
@@ -88,7 +95,6 @@ pub struct Race {
     ai_controlled: bool,
 }
 
-#[allow(dead_code)]
 impl Race {
     pub fn new(id: RaceId, name: String, home_planet_id: u32) -> Self {
         Self {
@@ -112,7 +118,6 @@ impl Race {
         }
     }
 
-    #[allow(dead_code)]
     pub fn id(&self) -> RaceId {
         self.id
     }
@@ -129,7 +134,6 @@ impl Race {
         &self.technology
     }
 
-    #[allow(dead_code)]
     pub fn home_planet_id(&self) -> u32 {
         self.home_planet_id
     }
@@ -155,6 +159,7 @@ struct TechProgress {
     drive_progress: f64,
     weapon_progress: f64,
     shield_progress: f64,
+    cargo_progress: f64,
 }
 
 impl TechProgress {
@@ -163,6 +168,7 @@ impl TechProgress {
             drive_progress: 0.0,
             weapon_progress: 0.0,
             shield_progress: 0.0,
+            cargo_progress: 0.0,
         }
     }
 
@@ -171,6 +177,7 @@ impl TechProgress {
             TechnologyType::Drive => self.drive_progress += effort,
             TechnologyType::Weapon => self.weapon_progress += effort,
             TechnologyType::Shield => self.shield_progress += effort,
+            TechnologyType::Cargo => self.cargo_progress += effort,
         }
     }
 
@@ -179,6 +186,7 @@ impl TechProgress {
             TechnologyType::Drive => self.drive_progress,
             TechnologyType::Weapon => self.weapon_progress,
             TechnologyType::Shield => self.shield_progress,
+            TechnologyType::Cargo => self.cargo_progress,
         }
     }
 
@@ -187,6 +195,7 @@ impl TechProgress {
             TechnologyType::Drive => self.drive_progress = 0.0,
             TechnologyType::Weapon => self.weapon_progress = 0.0,
             TechnologyType::Shield => self.shield_progress = 0.0,
+            TechnologyType::Cargo => self.cargo_progress = 0.0,
         }
     }
 }

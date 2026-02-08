@@ -23,7 +23,6 @@ pub struct ShipDesign {
     cargo_mass: f64,
 }
 
-#[allow(dead_code)]
 impl ShipDesign {
     pub fn new(
         drive_mass: f64,
@@ -100,10 +99,24 @@ impl ShipDesign {
         (self.shields_mass * shields_tech / total_mass.powf(1.0 / 3.0)) * 30.0_f64.powf(1.0 / 3.0)
     }
 
-    /// Calculate cargo capacity: cargo_mass + cargo_mass²/10
+    /// Calculate base cargo capacity: cargo_mass + cargo_mass²/10
     pub fn base_cargo_capacity(&self) -> f64 {
         self.cargo_mass + (self.cargo_mass * self.cargo_mass) / 10.0
     }
+
+    /// Calculate cargo capacity with technology: base_capacity × cargo_tech
+    pub fn cargo_capacity(&self, cargo_tech: f64) -> f64 {
+        self.base_cargo_capacity() * cargo_tech
+    }
+}
+
+/// Cargo types that ships can carry
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(dead_code)] // Used in tests and future game mechanics // Used in tests and future game mechanics
+pub enum CargoType {
+    Colonists,
+    Materials,
+    Capital,
 }
 
 /// A spaceship
@@ -114,9 +127,11 @@ pub struct Ship {
     design: ShipDesign,
     current_hull: f64,
     location: ShipLocation,
+    cargo_colonists: f64,
+    cargo_materials: f64,
+    cargo_capital: f64,
 }
 
-#[allow(dead_code)]
 impl Ship {
     pub fn new(id: ShipId, owner: RaceId, design: ShipDesign, location: PlanetId) -> Self {
         Self {
@@ -125,10 +140,12 @@ impl Ship {
             current_hull: design.shields_mass(), // Hull = shields mass
             design,
             location: ShipLocation::AtPlanet(location),
+            cargo_colonists: 0.0,
+            cargo_materials: 0.0,
+            cargo_capital: 0.0,
         }
     }
 
-    #[allow(dead_code)]
     pub fn id(&self) -> ShipId {
         self.id
     }
@@ -141,7 +158,6 @@ impl Ship {
         &self.design
     }
 
-    #[allow(dead_code)]
     pub fn current_hull(&self) -> f64 {
         self.current_hull
     }
@@ -164,9 +180,66 @@ impl Ship {
         self.current_hull = (self.current_hull - damage).max(0.0);
     }
 
-    /// Calculate travel speed based on design and technology
+    /// Get total cargo mass
+    pub fn total_cargo(&self) -> f64 {
+        self.cargo_colonists + self.cargo_materials + self.cargo_capital
+    }
+
+    /// Get available cargo space
+    pub fn available_cargo(&self, cargo_tech: f64) -> f64 {
+        let capacity = self.design.cargo_capacity(cargo_tech);
+        (capacity - self.total_cargo()).max(0.0)
+    }
+
+    /// Load cargo onto ship (returns amount actually loaded)
+    pub fn load_cargo(&mut self, cargo_type: CargoType, amount: f64, cargo_tech: f64) -> f64 {
+        let available = self.available_cargo(cargo_tech);
+        let to_load = amount.min(available);
+
+        match cargo_type {
+            CargoType::Colonists => self.cargo_colonists += to_load,
+            CargoType::Materials => self.cargo_materials += to_load,
+            CargoType::Capital => self.cargo_capital += to_load,
+        }
+
+        to_load
+    }
+
+    /// Unload cargo from ship (returns amount actually unloaded)
+    pub fn unload_cargo(&mut self, cargo_type: CargoType, amount: f64) -> f64 {
+        let to_unload = match cargo_type {
+            CargoType::Colonists => {
+                let unload = amount.min(self.cargo_colonists);
+                self.cargo_colonists -= unload;
+                unload
+            }
+            CargoType::Materials => {
+                let unload = amount.min(self.cargo_materials);
+                self.cargo_materials -= unload;
+                unload
+            }
+            CargoType::Capital => {
+                let unload = amount.min(self.cargo_capital);
+                self.cargo_capital -= unload;
+                unload
+            }
+        };
+
+        to_unload
+    }
+
+    /// Get cargo amount by type
+    pub fn cargo(&self, cargo_type: CargoType) -> f64 {
+        match cargo_type {
+            CargoType::Colonists => self.cargo_colonists,
+            CargoType::Materials => self.cargo_materials,
+            CargoType::Capital => self.cargo_capital,
+        }
+    }
+
+    /// Calculate travel speed based on design, technology, and cargo
     pub fn travel_speed(&self, drive_tech: f64) -> f64 {
-        self.design.speed(drive_tech, 0.0) // No cargo for now
+        self.design.speed(drive_tech, self.total_cargo())
     }
 
     /// Calculate attack strength with technology
@@ -201,7 +274,6 @@ impl ShipLocation {
     }
 
     /// Returns true if the ship is traveling
-    #[allow(dead_code)]
     pub fn is_traveling(&self) -> bool {
         matches!(self, Self::Traveling { .. })
     }
@@ -267,5 +339,122 @@ mod tests {
         // Defence calculation is more complex, just check it returns something
         let defence = battleship.defence_strength(2.0, 0.0);
         assert!(defence > 0.0);
+    }
+}
+
+#[cfg(test)]
+mod cargo_tests {
+    use super::*;
+
+    #[test]
+    fn test_cargo_capacity_with_tech() {
+        // Freighter with cargo_mass = 10.0
+        let design = ShipDesign::new(5.0, 0, 0.0, 5.0, 10.0);
+
+        // Base capacity = 10 + 100/10 = 20
+        assert_eq!(design.base_cargo_capacity(), 20.0);
+
+        // With tech level 1.0: 20 × 1.0 = 20
+        assert_eq!(design.cargo_capacity(1.0), 20.0);
+
+        // With tech level 2.0: 20 × 2.0 = 40
+        assert_eq!(design.cargo_capacity(2.0), 40.0);
+    }
+
+    #[test]
+    fn test_load_cargo() {
+        let design = ShipDesign::new(5.0, 0, 0.0, 5.0, 5.0);
+        let mut ship = Ship::new(ShipId(1), RaceId(0), design, PlanetId(0));
+
+        // Capacity = 5 + 25/10 = 7.5 at tech 1.0
+        assert_eq!(ship.available_cargo(1.0), 7.5);
+
+        // Load 3.0 colonists
+        let loaded = ship.load_cargo(CargoType::Colonists, 3.0, 1.0);
+        assert_eq!(loaded, 3.0);
+        assert_eq!(ship.cargo(CargoType::Colonists), 3.0);
+        assert_eq!(ship.available_cargo(1.0), 4.5);
+
+        // Load 2.0 materials
+        let loaded = ship.load_cargo(CargoType::Materials, 2.0, 1.0);
+        assert_eq!(loaded, 2.0);
+        assert_eq!(ship.total_cargo(), 5.0);
+
+        // Try to load more than available (2.5 available, try 5.0)
+        let loaded = ship.load_cargo(CargoType::Capital, 5.0, 1.0);
+        assert_eq!(loaded, 2.5);
+        assert_eq!(ship.total_cargo(), 7.5);
+        assert_eq!(ship.available_cargo(1.0), 0.0);
+    }
+
+    #[test]
+    fn test_unload_cargo() {
+        let design = ShipDesign::new(5.0, 0, 0.0, 5.0, 10.0);
+        let mut ship = Ship::new(ShipId(1), RaceId(0), design, PlanetId(0));
+
+        // Load cargo
+        ship.load_cargo(CargoType::Materials, 10.0, 1.0);
+        assert_eq!(ship.cargo(CargoType::Materials), 10.0);
+
+        // Unload 4.0
+        let unloaded = ship.unload_cargo(CargoType::Materials, 4.0);
+        assert_eq!(unloaded, 4.0);
+        assert_eq!(ship.cargo(CargoType::Materials), 6.0);
+
+        // Try to unload more than available
+        let unloaded = ship.unload_cargo(CargoType::Materials, 10.0);
+        assert_eq!(unloaded, 6.0);
+        assert_eq!(ship.cargo(CargoType::Materials), 0.0);
+    }
+
+    #[test]
+    fn test_cargo_affects_speed() {
+        let design = ShipDesign::new(10.0, 0, 0.0, 5.0, 5.0);
+        let mut ship = Ship::new(ShipId(1), RaceId(0), design, PlanetId(0));
+
+        // Empty ship speed
+        let empty_speed = ship.travel_speed(1.0);
+
+        // Load cargo
+        ship.load_cargo(CargoType::Materials, 5.0, 1.0);
+
+        // Loaded ship should be slower
+        let loaded_speed = ship.travel_speed(1.0);
+        assert!(loaded_speed < empty_speed);
+    }
+
+    #[test]
+    fn test_cargo_types_separate() {
+        let design = ShipDesign::new(5.0, 0, 0.0, 5.0, 10.0);
+        let mut ship = Ship::new(ShipId(1), RaceId(0), design, PlanetId(0));
+
+        ship.load_cargo(CargoType::Colonists, 3.0, 1.0);
+        ship.load_cargo(CargoType::Materials, 5.0, 1.0);
+        ship.load_cargo(CargoType::Capital, 2.0, 1.0);
+
+        assert_eq!(ship.cargo(CargoType::Colonists), 3.0);
+        assert_eq!(ship.cargo(CargoType::Materials), 5.0);
+        assert_eq!(ship.cargo(CargoType::Capital), 2.0);
+        assert_eq!(ship.total_cargo(), 10.0);
+    }
+
+    #[test]
+    fn test_cargo_tech_increases_capacity() {
+        let design = ShipDesign::new(5.0, 0, 0.0, 5.0, 10.0);
+        let mut ship = Ship::new(ShipId(1), RaceId(0), design, PlanetId(0));
+
+        // Base capacity = 10 + 100/10 = 20
+        // At tech 1.0: capacity = 20
+        assert_eq!(ship.available_cargo(1.0), 20.0);
+
+        // At tech 2.0: capacity = 40
+        assert_eq!(ship.available_cargo(2.0), 40.0);
+
+        // Load 25.0 at tech 2.0 (should fit)
+        let loaded = ship.load_cargo(CargoType::Materials, 25.0, 2.0);
+        assert_eq!(loaded, 25.0);
+
+        // But at tech 1.0, this would exceed capacity
+        assert!(ship.total_cargo() > ship.design.cargo_capacity(1.0));
     }
 }

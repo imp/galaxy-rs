@@ -5,11 +5,13 @@ use crate::ship::Ship;
 
 /// Result of a combat encounter
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
+
 pub struct CombatResult {
     pub attacker_survived: bool,
     pub defender_survived: bool,
+
     pub attacker_damage_dealt: f64,
+
     pub defender_damage_dealt: f64,
 }
 
@@ -18,7 +20,6 @@ pub struct CombatResult {
 pub struct CombatSystem;
 
 impl CombatSystem {
-    #[allow(dead_code)]
     pub fn new() -> Self {
         Self
     }
@@ -47,7 +48,6 @@ impl CombatSystem {
     }
 
     /// Check if two ships should engage in combat based on their owners
-    #[allow(dead_code)]
     pub fn should_engage(ship1_owner: RaceId, ship2_owner: RaceId) -> bool {
         ship1_owner != ship2_owner
     }

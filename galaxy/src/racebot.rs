@@ -115,7 +115,6 @@ impl Racebot {
         }
     }
 
-    #[allow(dead_code)]
     pub fn race_id(&self) -> RaceId {
         self.race_id
     }
@@ -321,7 +320,7 @@ pub struct RacebotDecisions {
 pub struct ShipBuild {
     pub planet_id: PlanetId,
     pub design: ShipDesign,
-    #[allow(dead_code)]
+
     pub name: String,
 }
 

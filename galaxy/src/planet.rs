@@ -24,12 +24,10 @@ impl Position {
         Self { x, y }
     }
 
-    #[allow(dead_code)]
     pub fn x(&self) -> f64 {
         self.x
     }
 
-    #[allow(dead_code)]
     pub fn y(&self) -> f64 {
         self.y
     }
@@ -58,7 +56,6 @@ pub struct Planet {
     production_type: ProductionType,
 }
 
-#[allow(dead_code)]
 impl Planet {
     pub fn new(id: PlanetId, position: Position, size: u32, owner: Option<u32>) -> Self {
         Self {
@@ -318,7 +315,7 @@ impl Planet {
 
 /// Production type for a planet
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
-#[allow(dead_code)]
+
 pub enum ProductionType {
     None,
     Materials,
@@ -334,7 +331,7 @@ pub struct ShipTypeId(pub u32);
 
 /// Technology focus for a planet
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
-#[allow(dead_code)]
+
 pub enum TechFocus {
     None,
     Research(TechnologyType),
