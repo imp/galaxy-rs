@@ -475,14 +475,21 @@ impl GameState {
             }
         }
 
-        // Build ships
-        for ship_build in decisions.ship_builds {
-            self.build_ship(ship_build.planet_id, ship_build.design);
-        }
-
         // Move ships
         for ship_movement in decisions.ship_movements {
+            println!(
+                "    Ordering {} to travel to {:?}",
+                ship_movement.ship_id, ship_movement.destination
+            );
             self.order_ship_travel(ship_movement.ship_id, ship_movement.destination);
+        }
+
+        // Build ships
+        if !decisions.ship_builds.is_empty() {
+            println!("    Building {} ships", decisions.ship_builds.len());
+        }
+        for ship_build in decisions.ship_builds {
+            self.build_ship(ship_build.planet_id, ship_build.design);
         }
     }
 
