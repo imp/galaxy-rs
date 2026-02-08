@@ -184,6 +184,7 @@ impl GameState {
     }
 
     /// Order a ship to travel to a destination planet
+    #[allow(dead_code)]
     pub fn order_ship_travel(&mut self, ship_id: ShipId, destination: PlanetId) -> bool {
         let ship = match self.ships.get_mut(&ship_id) {
             Some(s) => s,

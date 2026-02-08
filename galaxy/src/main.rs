@@ -2,13 +2,14 @@ mod combat;
 mod diplomacy;
 mod galaxy;
 mod game_state;
+mod init;
 mod planet;
 mod race;
 mod ship;
 
-use diplomacy::Relationship;
 use game_state::GameState;
-use planet::Position;
+use init::GameConfig;
+use init::initialize_game;
 use planet::TechFocus;
 use race::TechnologyType;
 use ship::ShipDesign;
@@ -16,27 +17,15 @@ use ship::ShipDesign;
 fn main() {
     println!("=== GALAXY - Space Simulator ===\n");
 
-    // Create a new game
-    let mut game = GameState::new(1000.0, 1000.0);
+    // Initialize game with random galaxy
+    let config = GameConfig {
+        galaxy_width: 1000.0,
+        galaxy_height: 1000.0,
+        num_races: 4,
+        num_planets: 15,
+    };
 
-    // Add home planets for two races
-    let home1_id = game
-        .galaxy_mut()
-        .add_planet(Position::new(100.0, 100.0), 100, Some(0));
-    let home2_id = game
-        .galaxy_mut()
-        .add_planet(Position::new(900.0, 900.0), 100, Some(1));
-    let _neutral = game
-        .galaxy_mut()
-        .add_planet(Position::new(500.0, 500.0), 150, None);
-
-    // Create races
-    let race1 = game.add_race("Humans".to_string(), home1_id.0);
-    let race2 = game.add_race("Aliens".to_string(), home2_id.0);
-
-    // Set technology focus
-    game.set_planet_tech_focus(home1_id, TechFocus::Research(TechnologyType::Drive));
-    game.set_planet_tech_focus(home2_id, TechFocus::Research(TechnologyType::Weapon));
+    let mut game = initialize_game(config);
 
     println!("Game initialized - Turn {}", game.turn());
     println!(
@@ -44,16 +33,61 @@ fn main() {
         game.galaxy().width(),
         game.galaxy().height()
     );
-    println!("{} home: {}", race1, home1_id);
-    println!("{} home: {}", race2, home2_id);
+    println!("Races: {}", game.races().count());
+    println!("Planets: {}", game.galaxy().planets().count());
+
+    // Show race info
+    println!("\n--- Races ---");
+    for race in game.races() {
+        let planet_count = game.galaxy().count_planets_owned_by(race.id().0);
+        println!("{}: {} - {} planets", race.id(), race.name(), planet_count);
+    }
+
+    // Show planet distribution
+    println!("\n--- Planets ---");
+    for planet in game.galaxy().planets() {
+        let owner_name = if let Some(owner_id) = planet.owner() {
+            game.races()
+                .find(|r| r.id().0 == owner_id)
+                .map_or("Unknown", |r| r.name())
+        } else {
+            "Uninhabited"
+        };
+        println!("{}: size {} - {}", planet.id(), planet.size(), owner_name);
+    }
+
+    // Get first two races for testing
+    let races_vec: Vec<_> = game.races().map(|r| r.id()).collect();
+    let race1 = races_vec[0];
+    let race2 = races_vec[1];
+
+    // Get home planets
+    let home1_id = game
+        .galaxy()
+        .planets()
+        .find(|p| p.owner() == Some(race1.0))
+        .unwrap()
+        .id();
+
+    let home2_id = game
+        .galaxy()
+        .planets()
+        .find(|p| p.owner() == Some(race2.0))
+        .unwrap()
+        .id();
+
+    // Set technology focus
+    game.set_planet_tech_focus(home1_id, TechFocus::Research(TechnologyType::Drive));
+    game.set_planet_tech_focus(home2_id, TechFocus::Research(TechnologyType::Weapon));
 
     // Simulate a few turns
+    println!("\n--- Simulation ---");
     for _ in 0..3 {
         game.advance_turn();
 
         if let Some(planet) = game.galaxy().get_planet(home1_id) {
             println!(
-                "\nTurn {}: {} materials: {:.0}",
+                "Turn {}: {} materials: {:.0}",
                 game.turn(),
                 planet.id(),
                 planet.materials()
@@ -101,71 +135,20 @@ fn main() {
         );
     }
 
-    // Test ship exploration
-    println!("\n--- Ship Exploration Test ---");
-    if let Some(ship_id) = game.build_ship(home1_id, ShipDesign::new(5, 10, 1, 1)) {
-        println!("Built explorer {}", ship_id);
-
-        // Send ship to neutral planet
-        if game.order_ship_travel(ship_id, _neutral) {
-            println!("Ship ordered to explore {}", _neutral);
-
-            // Simulate travel
-            for _i in 1..=5 {
-                game.advance_turn();
-                if let Some(ship) = game.get_ship(ship_id) {
-                    match ship.location() {
-                        ship::ShipLocation::Traveling { to, progress, .. } => {
-                            println!(
-                                "  Turn {}: Ship traveling to {} - {:.0}% complete",
-                                game.turn(),
-                                to,
-                                progress * 100.0
-                            );
-                        }
-                        ship::ShipLocation::AtPlanet(pid) => {
-                            println!("  Turn {}: Ship arrived at {}", game.turn(), pid);
-                            if let Some(planet) = game.galaxy().get_planet(*pid)
-                                && let Some(owner) = planet.owner()
-                            {
-                                println!("    Planet colonized by race {}", owner);
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Test diplomacy system
+    // Test diplomacy
     println!("\n--- Diplomacy Test ---");
     println!(
-        "Humans vs Aliens: {:?}",
+        "{} vs {}: {:?}",
+        game.get_race(race1).unwrap().name(),
+        game.get_race(race2).unwrap().name(),
         game.diplomacy().get_relationship(race1, race2)
     );
 
-    // Make them hostile
+    // Declare war
     game.diplomacy_mut().make_hostile(race1, race2);
     println!(
-        "After declaring war: {:?}",
+        "After war declaration: {:?}",
         game.diplomacy().get_relationship(race1, race2)
-    );
-    println!(
-        "Should attack: {}",
-        game.diplomacy().should_attack(race1, race2)
-    );
-
-    // Make them friendly
-    game.diplomacy_mut()
-        .set_relationship(race1, race2, Relationship::Friendly);
-    println!(
-        "After alliance: {:?}",
-        game.diplomacy().get_relationship(race1, race2)
-    );
-    println!(
-        "Should attack: {}",
-        game.diplomacy().should_attack(race1, race2)
     );
 
     println!("\n=== Simulation Complete ===");
