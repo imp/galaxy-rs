@@ -20,6 +20,24 @@ bd sync               # Sync with git
 ### Clippy attributes
 Prefer `#[expect(...)]` over `#[allow(...)]`
 
+**Why?** `#[expect()]` will warn you when the lint condition no longer applies,
+making it easy to spot and remove unneeded attributes. This keeps the codebase clean.
+
+**Strategy:**
+1. Remove all `#[allow(dead_code)]` attributes
+2. Run clippy to see what's actually unused
+3. Add targeted `#[allow(dead_code)]` only where needed
+4. When code becomes used, clippy will warn about unnecessary allows
+
+Note: `#[expect()]` requires nightly Rust. Use `#[allow()]` on stable but
+periodically audit and remove unnecessary ones.
+
+### Code style
+- **Encapsulation**: Use private fields with public getters/setters
+- **No public struct fields**: Prefer accessor methods for better API control
+- **Bevy Components**: Derive `Component` for entities, `Resource` for singletons
+- **Import grouping**: rustfmt groups imports as `StdExternalCrate` with individual items
+
 
 ## Landing the Plane (Session Completion)
 

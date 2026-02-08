@@ -149,6 +149,28 @@ impl GameState {
         winner
     }
 
+    /// Run the game simulation for a maximum number of turns
+    /// Returns the winning race or None if no victory by max_turns
+    #[allow(dead_code)]
+    pub fn run_simulation(&mut self, max_turns: u32) -> Option<RaceId> {
+        for _ in 0..max_turns {
+            self.advance_turn();
+
+            // Check for victory (could add more sophisticated checks)
+            if let Some(winner) = self.check_victory() {
+                let winner_planets = self.galaxy.count_planets_owned_by(winner.0);
+                let total_planets = self.galaxy.planets().count();
+
+                // Win if you control majority of planets
+                if winner_planets > total_planets / 2 {
+                    return Some(winner);
+                }
+            }
+        }
+
+        None // No winner within max_turns
+    }
+
     /// Build a ship at a planet
     pub fn build_ship(&mut self, planet_id: PlanetId, design: ShipDesign) -> Option<ShipId> {
         let planet = self.galaxy.get_planet(planet_id)?;
