@@ -7,7 +7,7 @@ const PLANET_BASE_RADIUS: f32 = 3.0;
 const SHIP_SIZE: f32 = 8.0;
 const ZOOM_SCALE: f32 = 2.0;
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct PlanetMarker {
     planet_id: u32,
 }
@@ -22,7 +22,7 @@ impl PlanetMarker {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct ShipMarker {
     ship_id: u32,
 }
@@ -43,6 +43,7 @@ struct TurnText;
 #[derive(Component)]
 struct InfoText;
 
+#[derive(Debug)]
 pub struct RenderingPlugin;
 
 impl Plugin for RenderingPlugin {

@@ -2122,6 +2122,14 @@ name = "galaxy"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "galaxy-core",
+]
+
+[[package]]
+name = "galaxy-core"
+version = "0.1.0"
+dependencies = [
+ "bevy",
  "rand",
 ]
 

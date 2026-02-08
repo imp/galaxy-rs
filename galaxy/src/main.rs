@@ -1,20 +1,6 @@
-#![allow(unused_crate_dependencies)] // Binary uses galaxy as extern crate for tests
-
-mod combat;
-mod diplomacy;
-mod galaxy;
-mod game_state;
-mod init;
-mod planet;
-mod race;
-mod racebot;
-mod rendering;
-mod ship;
-
 use bevy::prelude::*;
-use init::GameConfig;
-use init::initialize_game;
-use rendering::RenderingPlugin;
+use galaxy_core::init::{initialize_game, GameConfig};
+use galaxy_core::rendering::RenderingPlugin;
 
 fn main() {
     // Initialize game with random galaxy

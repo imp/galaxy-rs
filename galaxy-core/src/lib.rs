@@ -6,4 +6,5 @@ pub mod init;
 pub mod planet;
 pub mod race;
 pub mod racebot;
+pub mod rendering;
 pub mod ship;

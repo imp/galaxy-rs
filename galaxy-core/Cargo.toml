@@ -1,13 +1,16 @@
 [package]
-name = "galaxy"
+name = "galaxy-core"
+
 version.workspace = true
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
 
+
 [dependencies]
-galaxy-core = { path = "../galaxy-core" }
 bevy.workspace = true
+rand.workspace = true
+
 
 [lints]
 workspace = true

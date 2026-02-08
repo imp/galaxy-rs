@@ -1,8 +1,8 @@
 #![allow(unused_crate_dependencies)] // Test uses dependencies from main crate
 
-use galaxy::game_state::GameState;
-use galaxy::planet::Position;
-use galaxy::racebot::Personality;
+use galaxy_core::game_state::GameState;
+use galaxy_core::planet::Position;
+use galaxy_core::racebot::Personality;
 
 #[test]
 fn test_multi_bot_simulation() {
