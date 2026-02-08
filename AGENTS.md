@@ -41,10 +41,17 @@ Use it instead of `#[allow()]` to get automatic cleanup warnings.
 - **No public struct fields**: Prefer accessor methods for better API control
 - **Bevy Components**: Derive `Component` for entities, `Resource` for singletons
 - **Import grouping**: rustfmt groups imports as `StdExternalCrate` with individual items
+  - Example: `use std::fmt;` and then `impl fmt::Display for Foo`
+  - Example: `use std::io;` and then `fn foo() -> io::Result<()>`
+- **Let-chains for nested conditions**: Use `if let Some(x) = ... && condition` instead of nested ifs
+- **Prefer map_or over map().unwrap_or()**: clippy warns about the latter
+- **Avoid .clone() on Copy types**: Use the value directly
 
-- ** `use std::fmt;` and then `impl fmt::Display for Foo`
-- ** `use std::io;` and then `fn foo() -> io::Result<()>;`
-- and so on
+### Borrow Checker Patterns
+- **Separate read and write phases**: When analyzing state, use immutable borrows first,
+  then apply changes with mutable borrows in a separate phase
+- **Example**: Racebot analyzes game state (immutable), returns decisions struct,
+  then GameState executes decisions (mutable)
 
 ## Landing the Plane (Session Completion)
 
