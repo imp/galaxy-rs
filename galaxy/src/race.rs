@@ -12,10 +12,10 @@ impl std::fmt::Display for RaceId {
 
 /// Technology types that can be advanced
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
+#[allow(dead_code)]
 pub enum TechnologyType {
     Drive,
     Weapon,
-    #[allow(dead_code)]
     Shield,
 }
 
@@ -27,6 +27,7 @@ pub struct Technology {
     shield_level: u32,
 }
 
+#[allow(dead_code)]
 impl Technology {
     pub fn new() -> Self {
         Self {
@@ -86,6 +87,7 @@ pub struct Race {
     tech_progress: TechProgress,
 }
 
+#[allow(dead_code)]
 impl Race {
     pub fn new(id: RaceId, name: String, home_planet_id: u32) -> Self {
         Self {

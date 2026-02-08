@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use crate::GameState;
+use crate::game_state::GameState;
 use crate::planet::Position;
 
 /// Configuration for initializing a new game

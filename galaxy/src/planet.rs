@@ -52,6 +52,7 @@ pub struct Planet {
     tech_focus: TechFocus,
 }
 
+#[allow(dead_code)]
 impl Planet {
     pub fn new(id: PlanetId, position: Position, size: u32, owner: Option<u32>) -> Self {
         Self {
@@ -121,6 +122,7 @@ impl Planet {
 
 /// Technology focus for a planet
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
+#[allow(dead_code)]
 pub enum TechFocus {
     None,
     Research(TechnologyType),

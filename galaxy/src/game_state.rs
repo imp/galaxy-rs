@@ -27,6 +27,7 @@ pub struct GameState {
     turn: u32,
 }
 
+#[allow(dead_code)]
 impl GameState {
     pub fn new(galaxy_width: f64, galaxy_height: f64) -> Self {
         Self {

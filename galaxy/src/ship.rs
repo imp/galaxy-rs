@@ -22,6 +22,7 @@ pub struct ShipDesign {
     cannon_power: u32,
 }
 
+#[allow(dead_code)]
 impl ShipDesign {
     pub fn new(hull: u32, engine: u32, cannon_count: u32, cannon_power: u32) -> Self {
         Self {
@@ -85,6 +86,7 @@ pub struct Ship {
     location: ShipLocation,
 }
 
+#[allow(dead_code)]
 impl Ship {
     pub fn new(id: ShipId, owner: RaceId, design: ShipDesign, location: PlanetId) -> Self {
         Self {
@@ -152,4 +154,20 @@ pub enum ShipLocation {
         to: PlanetId,
         progress: f64,
     },
+}
+
+impl ShipLocation {
+    /// Returns the planet ID if the ship is at a planet
+    pub fn planet_id(&self) -> Option<PlanetId> {
+        match self {
+            Self::AtPlanet(id) => Some(*id),
+            Self::Traveling { .. } => None,
+        }
+    }
+
+    /// Returns true if the ship is traveling
+    #[allow(dead_code)]
+    pub fn is_traveling(&self) -> bool {
+        matches!(self, Self::Traveling { .. })
+    }
 }
