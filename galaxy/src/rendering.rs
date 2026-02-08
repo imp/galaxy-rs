@@ -37,18 +37,89 @@ impl ShipMarker {
     }
 }
 
+#[derive(Component)]
+struct TurnText;
+
+#[derive(Component)]
+struct InfoText;
+
 pub struct RenderingPlugin;
 
 impl Plugin for RenderingPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(BACKGROUND_COLOR))
-            .add_systems(Startup, setup_camera)
-            .add_systems(Update, (spawn_planets, spawn_ships, update_ui));
+            .add_systems(Startup, (setup_camera, setup_ui))
+            .add_systems(
+                Update,
+                (spawn_planets, spawn_ships, update_ui, handle_input),
+            );
     }
 }
 
 fn setup_camera(mut commands: Commands<'_, '_>) {
     commands.spawn(Camera2d);
+}
+
+fn setup_ui(mut commands: Commands<'_, '_>) {
+    // UI root
+    commands
+        .spawn(Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            justify_content: JustifyContent::SpaceBetween,
+            ..default()
+        })
+        .with_children(|parent| {
+            // Top bar - turn counter
+            parent
+                .spawn(Node {
+                    width: Val::Percent(100.0),
+                    height: Val::Px(60.0),
+                    padding: UiRect::all(Val::Px(10.0)),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn((
+                        Text::new("Turn: 0"),
+                        TextFont {
+                            font_size: 30.0,
+                            ..default()
+                        },
+                        TextColor(Color::WHITE),
+                        TurnText,
+                    ));
+                });
+
+            // Bottom bar - instructions
+            parent
+                .spawn(Node {
+                    width: Val::Percent(100.0),
+                    height: Val::Px(80.0),
+                    padding: UiRect::all(Val::Px(10.0)),
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn((
+                        Text::new("SPACE: Advance Turn | ESC: Quit"),
+                        TextFont {
+                            font_size: 20.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.7, 0.7, 0.7)),
+                    ));
+                    parent.spawn((
+                        Text::new(""),
+                        TextFont {
+                            font_size: 18.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.8, 0.8, 0.8)),
+                        InfoText,
+                    ));
+                });
+        });
 }
 
 fn spawn_planets(
@@ -135,10 +206,41 @@ fn spawn_ships(
     }
 }
 
-fn update_ui(game_state: Res<'_, GameState>) {
+fn update_ui(
+    game_state: Res<'_, GameState>,
+    mut turn_query: Query<'_, '_, &mut Text, (With<TurnText>, Without<InfoText>)>,
+    mut info_query: Query<'_, '_, &mut Text, (With<InfoText>, Without<TurnText>)>,
+) {
     if game_state.is_changed() {
-        // UI updates will go here
-        // For now just track turns
+        // Update turn counter
+        if let Ok(mut text) = turn_query.get_single_mut() {
+            **text = format!("Turn: {}", game_state.turn());
+        }
+
+        // Update info text
+        if let Ok(mut text) = info_query.get_single_mut() {
+            let total_planets = game_state.galaxy().planets().count();
+            let total_ships = game_state.ships().count();
+            let races = game_state.races().count();
+            **text = format!(
+                "Races: {} | Planets: {} | Ships: {}",
+                races, total_planets, total_ships
+            );
+        }
+    }
+}
+
+fn handle_input(
+    keyboard: Res<'_, ButtonInput<KeyCode>>,
+    mut game_state: ResMut<'_, GameState>,
+    mut exit: EventWriter<'_, AppExit>,
+) {
+    if keyboard.just_pressed(KeyCode::Space) {
+        game_state.advance_turn();
+    }
+
+    if keyboard.just_pressed(KeyCode::Escape) {
+        exit.send(AppExit::Success);
     }
 }
 
