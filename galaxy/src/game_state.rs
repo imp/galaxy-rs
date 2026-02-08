@@ -1,7 +1,7 @@
 use crate::galaxy::Galaxy;
 use crate::planet::{PlanetId, TechFocus};
 use crate::race::{Race, RaceId, TechnologyType};
-use crate::ship::{Ship, ShipDesign, ShipId};
+use crate::ship::{Ship, ShipDesign, ShipId, ShipLocation};
 use bevy::prelude::*;
 use std::collections::HashMap;
 
@@ -76,8 +76,8 @@ impl GameState {
         // 2. Process technology advancement per planet
         self.process_technology_advancement();
 
-        // 3. Process ship movement (TODO: implement)
-        // self.process_ship_movement();
+        // 3. Process ship movement
+        self.process_ship_movement();
     }
 
     fn process_technology_advancement(&mut self) {
@@ -158,5 +158,83 @@ impl GameState {
     #[allow(dead_code)]
     pub fn ships(&self) -> impl Iterator<Item = &Ship> {
         self.ships.values()
+    }
+
+    /// Order a ship to travel to a destination planet
+    pub fn order_ship_travel(&mut self, ship_id: ShipId, destination: PlanetId) -> bool {
+        let ship = match self.ships.get_mut(&ship_id) {
+            Some(s) => s,
+            None => return false,
+        };
+
+        // Get current location
+        let origin = match ship.location() {
+            ShipLocation::AtPlanet(planet_id) => *planet_id,
+            ShipLocation::Traveling { .. } => return false, // Already traveling
+        };
+
+        // Can't travel to same planet
+        if origin == destination {
+            return false;
+        }
+
+        // Verify destination exists
+        if self.galaxy.get_planet(destination).is_none() {
+            return false;
+        }
+
+        // Start travel
+        ship.set_location(ShipLocation::Traveling {
+            from: origin,
+            to: destination,
+            progress: 0.0,
+        });
+
+        true
+    }
+
+    fn process_ship_movement(&mut self) {
+        // Collect ship movements to process
+        let movements: Vec<(ShipId, PlanetId, PlanetId, f64, f64)> = self
+            .ships
+            .iter()
+            .filter_map(|(id, ship)| {
+                if let ShipLocation::Traveling { from, to, progress } = ship.location() {
+                    // Calculate distance between planets
+                    let from_planet = self.galaxy.get_planet(*from)?;
+                    let to_planet = self.galaxy.get_planet(*to)?;
+                    let distance = from_planet.position().distance_to(to_planet.position());
+                    Some((*id, *from, *to, *progress, distance))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        for (ship_id, from, to, progress, distance) in movements {
+            if let Some(ship) = self.ships.get_mut(&ship_id) {
+                let speed = ship.travel_speed();
+                let new_progress = progress + (speed / distance.max(1.0));
+
+                if new_progress >= 1.0 {
+                    // Ship arrived
+                    ship.set_location(ShipLocation::AtPlanet(to));
+
+                    // Check if planet is uninhabited and colonize it
+                    if let Some(planet) = self.galaxy.get_planet_mut(to)
+                        && planet.owner().is_none()
+                    {
+                        planet.set_owner(Some(ship.owner().0));
+                    }
+                } else {
+                    // Continue traveling
+                    ship.set_location(ShipLocation::Traveling {
+                        from,
+                        to,
+                        progress: new_progress,
+                    });
+                }
+            }
+        }
     }
 }

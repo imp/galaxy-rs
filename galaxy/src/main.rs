@@ -97,5 +97,42 @@ fn main() {
         );
     }
 
+    // Test ship exploration
+    println!("\n--- Ship Exploration Test ---");
+    if let Some(ship_id) = game.build_ship(home1_id, ShipDesign::new(5, 10, 1, 1)) {
+        println!("Built explorer {}", ship_id);
+
+        // Send ship to neutral planet
+        if game.order_ship_travel(ship_id, _neutral) {
+            println!("Ship ordered to explore {}", _neutral);
+
+            // Simulate travel
+            for _i in 1..=5 {
+                game.advance_turn();
+                if let Some(ship) = game.get_ship(ship_id) {
+                    match ship.location() {
+                        ship::ShipLocation::Traveling { to, progress, .. } => {
+                            println!(
+                                "  Turn {}: Ship traveling to {} - {:.0}% complete",
+                                game.turn(),
+                                to,
+                                progress * 100.0
+                            );
+                        }
+                        ship::ShipLocation::AtPlanet(pid) => {
+                            println!("  Turn {}: Ship arrived at {}", game.turn(), pid);
+                            if let Some(planet) = game.galaxy().get_planet(*pid)
+                                && let Some(owner) = planet.owner()
+                            {
+                                println!("    Planet colonized by race {}", owner);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     println!("\n=== Simulation Complete ===");
 }
