@@ -1,5 +1,6 @@
-use crate::race::TechnologyType;
 use bevy::prelude::*;
+
+use crate::race::TechnologyType;
 
 /// Unique identifier for a planet
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]

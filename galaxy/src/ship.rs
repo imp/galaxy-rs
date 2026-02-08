@@ -1,6 +1,7 @@
+use bevy::prelude::*;
+
 use crate::planet::PlanetId;
 use crate::race::RaceId;
-use bevy::prelude::*;
 
 /// Unique identifier for a ship
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]

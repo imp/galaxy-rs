@@ -1,6 +1,10 @@
-use crate::planet::{Planet, PlanetId, Position};
-use bevy::prelude::*;
 use std::collections::HashMap;
+
+use bevy::prelude::*;
+
+use crate::planet::Planet;
+use crate::planet::PlanetId;
+use crate::planet::Position;
 
 /// The galaxy containing all planets
 #[derive(Debug, Resource)]

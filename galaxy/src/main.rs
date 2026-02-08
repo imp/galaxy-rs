@@ -5,7 +5,8 @@ mod race;
 mod ship;
 
 use game_state::GameState;
-use planet::{Position, TechFocus};
+use planet::Position;
+use planet::TechFocus;
 use race::TechnologyType;
 use ship::ShipDesign;
 

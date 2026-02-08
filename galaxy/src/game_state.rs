@@ -1,9 +1,17 @@
-use crate::galaxy::Galaxy;
-use crate::planet::{PlanetId, TechFocus};
-use crate::race::{Race, RaceId, TechnologyType};
-use crate::ship::{Ship, ShipDesign, ShipId, ShipLocation};
-use bevy::prelude::*;
 use std::collections::HashMap;
+
+use bevy::prelude::*;
+
+use crate::galaxy::Galaxy;
+use crate::planet::PlanetId;
+use crate::planet::TechFocus;
+use crate::race::Race;
+use crate::race::RaceId;
+use crate::race::TechnologyType;
+use crate::ship::Ship;
+use crate::ship::ShipDesign;
+use crate::ship::ShipId;
+use crate::ship::ShipLocation;
 
 /// The main game state
 #[derive(Debug, Resource)]
