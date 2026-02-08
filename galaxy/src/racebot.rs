@@ -11,14 +11,115 @@ use crate::ship::ShipDesign;
 use crate::ship::ShipId;
 use crate::ship::ShipLocation;
 
+/// Behavioral personality for AI decision making
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(not(test), expect(dead_code))] // Variants used in tests
+pub enum Personality {
+    /// Aggressive: Builds warships, seeks combat, attacks readily
+    Aggressive,
+    /// Defensive: Builds defensive ships, stays near home, fortifies
+    Defensive,
+    /// Expansionist: Builds scouts, explores aggressively, rapid colonization
+    Expansionist,
+    /// Economic: Focuses on production, capital, research
+    Economic,
+    /// Balanced: Mix of all strategies, adapts to situation
+    Balanced,
+}
+
+impl Personality {
+    /// Get production priority weights (capital_weight, materials_weight)
+    #[expect(dead_code)]
+    fn production_weights(&self) -> (f64, f64) {
+        match self {
+            Self::Aggressive => (0.3, 0.7),   // More materials for ships
+            Self::Defensive => (0.5, 0.5),    // Balanced
+            Self::Expansionist => (0.4, 0.6), // More materials for scouts
+            Self::Economic => (0.7, 0.3),     // More capital for industry
+            Self::Balanced => (0.5, 0.5),     // Even split
+        }
+    }
+
+    /// Target capital per planet before focusing on materials
+    fn capital_target(&self) -> f64 {
+        match self {
+            Self::Aggressive => 30.0,   // Low - wants materials fast
+            Self::Defensive => 60.0,    // High - strong economy
+            Self::Expansionist => 40.0, // Medium
+            Self::Economic => 100.0,    // Very high - max industry
+            Self::Balanced => 50.0,     // Default
+        }
+    }
+
+    /// Maximum number of ships per planet
+    fn ships_per_planet_ratio(&self) -> f64 {
+        match self {
+            Self::Aggressive => 3.0,   // Large fleet
+            Self::Defensive => 1.5,    // Smaller defensive fleet
+            Self::Expansionist => 2.5, // Many scouts
+            Self::Economic => 1.0,     // Minimal military
+            Self::Balanced => 2.0,     // Default
+        }
+    }
+
+    /// Ship design based on personality
+    fn design_ship(&self, _race: &Race) -> ShipDesign {
+        match self {
+            Self::Aggressive => {
+                // Warship: Heavy weapons, moderate shields
+                ShipDesign::new(5.0, 3, 8.0, 6.0, 0.0)
+            }
+            Self::Defensive => {
+                // Defensive ship: Heavy shields, moderate weapons
+                ShipDesign::new(4.0, 2, 4.0, 10.0, 0.0)
+            }
+            Self::Expansionist => {
+                // Scout: Fast, light, has cargo for colonists
+                ShipDesign::new(3.0, 0, 0.0, 2.0, 2.0)
+            }
+            Self::Economic => {
+                // Colony ship: Minimal combat, max cargo
+                ShipDesign::new(2.0, 0, 0.0, 1.0, 3.0)
+            }
+            Self::Balanced => {
+                // Balanced ship: Moderate everything
+                ShipDesign::new(3.0, 1, 3.0, 4.0, 1.0)
+            }
+        }
+    }
+
+    /// Should aggressively colonize?
+    fn colonization_priority(&self) -> bool {
+        matches!(self, Self::Expansionist | Self::Economic | Self::Balanced)
+    }
+
+    /// Should seek combat?
+    #[expect(dead_code)]
+    fn combat_seeking(&self) -> bool {
+        matches!(self, Self::Aggressive)
+    }
+}
+
 /// AI controller for automated race management
 pub struct Racebot {
     race_id: RaceId,
+    personality: Personality,
 }
 
 impl Racebot {
     pub fn new(race_id: RaceId) -> Self {
-        Self { race_id }
+        Self {
+            race_id,
+            personality: Personality::Balanced,
+        }
+    }
+
+    #[cfg_attr(not(test), expect(dead_code))] // Used in tests
+    pub fn with_personality(race_id: RaceId, personality: Personality) -> Self {
+        Self {
+            race_id,
+            personality,
+        }
     }
 
     #[expect(dead_code)]
@@ -95,19 +196,18 @@ impl Racebot {
 
     /// Decide what to produce on a planet
     fn decide_production(&self, planet: &Planet, state: &GameState) -> ProductionType {
-        // Simple strategy:
-        // 1. If low on capital and can afford it, build capital
-        // 2. If decent industry but low materials, build materials
-        // 3. Otherwise build capital to increase industry
-
+        // Use personality to determine production strategy
         let avg_capital_per_planet = if !state.owned_planets.is_empty() {
             state.total_capital / state.owned_planets.len() as f64
         } else {
             0.0
         };
 
-        // Target: ~50 capital per planet for good industry
-        if avg_capital_per_planet < 50.0 {
+        // Get personality-based capital target
+        let capital_target = self.personality.capital_target();
+
+        // Build capital if below target and can afford it
+        if avg_capital_per_planet < capital_target {
             // Check if we can afford capital (needs 5 production + 1 material)
             if planet.materials() >= 1.0 && planet.production() >= 5.0 {
                 return ProductionType::Capital;
@@ -119,26 +219,22 @@ impl Racebot {
     }
 
     /// Decide what ships to build this turn
-    fn decide_ship_builds(&self, state: &GameState, _race: &Race) -> Vec<ShipBuild> {
+    fn decide_ship_builds(&self, state: &GameState, race: &Race) -> Vec<ShipBuild> {
         let mut builds = Vec::new();
 
-        // Simple strategy: build a scout on each planet with enough materials
-        // Scout design: small, fast, cheap (for colonization)
-        let scout_design = ShipDesign::new(
-            2.0, // drive_mass
-            0,   // attacks
-            0.0, // weapons_mass
-            1.0, // shields_mass
-            1.0, // cargo_mass
-        );
+        // Use personality to determine ship design and fleet size
+        let ship_design = self.personality.design_ship(race);
+        let max_ships = (state.owned_planets.len() as f64
+            * self.personality.ships_per_planet_ratio())
+        .ceil() as usize;
 
-        // Only build if we don't have too many ships already
-        if state.owned_ships.len() < state.owned_planets.len() * 2 {
+        // Only build if under fleet cap
+        if state.owned_ships.len() < max_ships {
             for planet_id in &state.owned_planets {
                 builds.push(ShipBuild {
                     planet_id: *planet_id,
-                    design: scout_design,
-                    name: format!("Scout-{}", planet_id.0),
+                    design: ship_design,
+                    name: format!("{:?}-{}", self.personality, planet_id.0),
                 });
             }
         }
@@ -155,7 +251,12 @@ impl Racebot {
     ) -> Vec<ShipMovement> {
         let mut movements = Vec::new();
 
-        // Simple strategy: send idle ships to colonize nearest unowned planet
+        // Only colonize if personality prioritizes it
+        if !self.personality.colonization_priority() {
+            return movements;
+        }
+
+        // Send idle ships to colonize nearest unowned planet
         for ship_id in &state.owned_ships {
             if let Some(ship) = ships.get(ship_id) {
                 // Only move ships that are at a planet (not traveling)
@@ -350,5 +451,100 @@ mod tests {
 
         // Should find the near planet
         assert_eq!(nearest, Some(near_planet));
+    }
+
+    #[test]
+    fn test_aggressive_personality() {
+        let mut game = GameState::new(1000.0, 1000.0);
+
+        let home_pos = Position::new(500.0, 500.0);
+        let home_planet = game.galaxy_mut().add_planet(home_pos, 100, Some(0));
+        let race_id = game.add_race("Aggressive".to_string(), home_planet.0);
+
+        let _racebot = Racebot::with_personality(race_id, Personality::Aggressive);
+        let race = game.get_race(race_id).unwrap();
+        let design = Personality::Aggressive.design_ship(race);
+        assert!(design.weapons_mass() > design.shields_mass());
+        assert!(design.attacks() >= 2);
+        assert_eq!(Personality::Aggressive.capital_target(), 30.0);
+    }
+
+    #[test]
+    fn test_defensive_personality() {
+        let mut game = GameState::new(1000.0, 1000.0);
+
+        let home_pos = Position::new(500.0, 500.0);
+        let home_planet = game.galaxy_mut().add_planet(home_pos, 100, Some(0));
+        let race_id = game.add_race("Defensive".to_string(), home_planet.0);
+
+        let _racebot = Racebot::with_personality(race_id, Personality::Defensive);
+        let race = game.get_race(race_id).unwrap();
+
+        let design = Personality::Defensive.design_ship(race);
+        assert!(design.shields_mass() > design.weapons_mass());
+        assert!(!Personality::Defensive.colonization_priority());
+    }
+
+    #[test]
+    fn test_expansionist_personality() {
+        let mut game = GameState::new(1000.0, 1000.0);
+
+        let home_pos = Position::new(500.0, 500.0);
+        let home_planet = game.galaxy_mut().add_planet(home_pos, 100, Some(0));
+        let race_id = game.add_race("Expansionist".to_string(), home_planet.0);
+
+        let _racebot = Racebot::with_personality(race_id, Personality::Expansionist);
+        let race = game.get_race(race_id).unwrap();
+
+        let design = Personality::Expansionist.design_ship(race);
+        assert!(design.cargo_mass() > 0.0);
+        assert_eq!(design.attacks(), 0);
+        assert!(Personality::Expansionist.colonization_priority());
+        assert!(Personality::Expansionist.ships_per_planet_ratio() > 2.0);
+    }
+
+    #[test]
+    fn test_economic_personality() {
+        let mut game = GameState::new(1000.0, 1000.0);
+
+        let home_pos = Position::new(500.0, 500.0);
+        let home_planet = game.galaxy_mut().add_planet(home_pos, 100, Some(0));
+        let race_id = game.add_race("Economic".to_string(), home_planet.0);
+
+        let _racebot = Racebot::with_personality(race_id, Personality::Economic);
+        let race = game.get_race(race_id).unwrap();
+
+        assert_eq!(Personality::Economic.capital_target(), 100.0);
+
+        let design = Personality::Economic.design_ship(race);
+        assert!(design.cargo_mass() >= 3.0);
+        assert_eq!(design.attacks(), 0);
+        assert_eq!(Personality::Economic.ships_per_planet_ratio(), 1.0);
+    }
+
+    #[test]
+    fn test_personality_affects_production() {
+        let mut game = GameState::new(1000.0, 1000.0);
+
+        let home_pos = Position::new(500.0, 500.0);
+        let home_planet = game.galaxy_mut().add_planet(home_pos, 100, Some(0));
+        let race_id = game.add_race("Test".to_string(), home_planet.0);
+
+        // Add materials for production
+        game.galaxy_mut()
+            .get_planet_mut(home_planet)
+            .unwrap()
+            .add_materials(1000.0);
+
+        let economic_bot = Racebot::with_personality(race_id, Personality::Economic);
+        let race = game.get_race(race_id).unwrap();
+        let ships = HashMap::new();
+        let state = economic_bot.analyze_state(game.galaxy(), race, &ships);
+
+        let planet = game.galaxy().get_planet(home_planet).unwrap();
+        let production_choice = economic_bot.decide_production(planet, &state);
+
+        // With low capital, should build capital (Economic has high target of 100)
+        assert_eq!(production_choice, ProductionType::Capital);
     }
 }
