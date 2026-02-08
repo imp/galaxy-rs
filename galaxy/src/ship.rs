@@ -79,7 +79,6 @@ impl ShipDesign {
 #[derive(Debug, Clone, Component)]
 pub struct Ship {
     id: ShipId,
-    #[allow(dead_code)]
     owner: RaceId,
     design: ShipDesign,
     current_hull: u32,
@@ -102,7 +101,6 @@ impl Ship {
         self.id
     }
 
-    #[allow(dead_code)]
     pub fn owner(&self) -> RaceId {
         self.owner
     }
@@ -116,36 +114,30 @@ impl Ship {
         self.current_hull
     }
 
-    #[allow(dead_code)]
     pub fn location(&self) -> &ShipLocation {
         &self.location
     }
 
-    #[allow(dead_code)]
     pub fn set_location(&mut self, location: ShipLocation) {
         self.location = location;
     }
 
     /// Check if ship is destroyed
-    #[allow(dead_code)]
     pub fn is_destroyed(&self) -> bool {
         self.current_hull == 0
     }
 
     /// Take damage to the ship
-    #[allow(dead_code)]
     pub fn take_damage(&mut self, damage: u32) {
         self.current_hull = self.current_hull.saturating_sub(damage);
     }
 
     /// Calculate travel speed based on engine power
-    #[allow(dead_code)]
     pub fn travel_speed(&self) -> f64 {
         self.design.engine_power() as f64 * 10.0
     }
 
     /// Calculate attack power
-    #[allow(dead_code)]
     pub fn attack_power(&self) -> u32 {
         self.design.cannon_count() * self.design.cannon_power()
     }
@@ -153,7 +145,6 @@ impl Ship {
 
 /// Ship location - either at a planet or traveling
 #[derive(Debug, Clone, Copy, PartialEq, Component)]
-#[allow(dead_code)]
 pub enum ShipLocation {
     AtPlanet(PlanetId),
     Traveling {

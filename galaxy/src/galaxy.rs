@@ -65,7 +65,6 @@ impl Galaxy {
     }
 
     /// Get planets owned by a specific race
-    #[allow(dead_code)]
     pub fn planets_owned_by(&self, race_id: u32) -> impl Iterator<Item = &Planet> {
         self.planets
             .values()
@@ -79,7 +78,6 @@ impl Galaxy {
     }
 
     /// Count planets owned by a race
-    #[allow(dead_code)]
     pub fn count_planets_owned_by(&self, race_id: u32) -> usize {
         self.planets_owned_by(race_id).count()
     }

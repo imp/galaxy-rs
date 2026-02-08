@@ -12,10 +12,10 @@ impl std::fmt::Display for RaceId {
 
 /// Technology types that can be advanced
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
-#[allow(dead_code)]
 pub enum TechnologyType {
     Drive,
     Weapon,
+    #[allow(dead_code)]
     Shield,
 }
 

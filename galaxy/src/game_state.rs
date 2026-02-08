@@ -81,7 +81,6 @@ impl GameState {
     }
 
     /// Get all races
-    #[allow(dead_code)]
     pub fn races(&self) -> impl Iterator<Item = &Race> {
         self.races.values()
     }

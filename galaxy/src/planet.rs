@@ -34,7 +34,6 @@ impl Position {
         self.y
     }
 
-    #[allow(dead_code)]
     pub fn distance_to(&self, other: &Self) -> f64 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
@@ -69,7 +68,6 @@ impl Planet {
         self.id
     }
 
-    #[allow(dead_code)]
     pub fn position(&self) -> &Position {
         &self.position
     }
@@ -82,7 +80,6 @@ impl Planet {
         self.owner
     }
 
-    #[allow(dead_code)]
     pub fn set_owner(&mut self, owner: Option<u32>) {
         self.owner = owner;
     }
