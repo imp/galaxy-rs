@@ -2,6 +2,7 @@ use rand::Rng;
 
 use crate::game_state::GameState;
 use crate::planet::Position;
+use crate::racebot::Personality;
 
 /// Configuration for initializing a new game
 #[derive(Debug, Clone)]
@@ -44,14 +45,16 @@ pub fn initialize_game(config: GameConfig) -> GameState {
 
     // Create home planets for each race (first num_races planets)
     let race_names = generate_race_names(config.num_races);
+    let personalities = generate_personalities(config.num_races, &mut rng);
 
     for i in 0..config.num_races {
         let position = planet_positions[i as usize];
         let planet_id = game.galaxy_mut().add_planet(position, 100, Some(i));
 
-        // Create the race
+        // Create AI-controlled race with random personality
         let race_name = race_names[i as usize].clone();
-        game.add_race(race_name, planet_id.0);
+        let personality = personalities[i as usize];
+        game.add_ai_race(race_name, planet_id.0, personality);
     }
 
     // Create remaining planets (random size 10-300, random resources 0.01-10.00)
@@ -101,6 +104,24 @@ fn generate_race_names(count: u32) -> Vec<String> {
     }
 
     names
+}
+
+/// Generate random AI personalities for races
+fn generate_personalities(count: u32, rng: &mut impl Rng) -> Vec<Personality> {
+    let all_personalities = [
+        Personality::Aggressive,
+        Personality::Defensive,
+        Personality::Balanced,
+        Personality::Expansionist,
+    ];
+
+    let mut personalities = Vec::new();
+    for _ in 0..count {
+        let personality = all_personalities[rng.gen_range(0..all_personalities.len())];
+        personalities.push(personality);
+    }
+
+    personalities
 }
 
 #[cfg(test)]

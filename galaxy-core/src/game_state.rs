@@ -108,6 +108,7 @@ impl GameState {
     /// Process one turn of the game
     pub fn advance_turn(&mut self) {
         self.turn += 1;
+        println!("\n=== Turn {} ===", self.turn);
 
         // 0. Process AI decisions for all AI-controlled races
         self.process_ai_turns();
@@ -129,6 +130,18 @@ impl GameState {
 
         // 6. Grow population on all planets
         self.process_population_growth();
+
+        // Print summary
+        let total_ships = self.ships.len();
+        let owned_planets: usize = self
+            .galaxy
+            .planets()
+            .filter(|p| p.owner().is_some())
+            .count();
+        println!(
+            "Turn {} complete: {} planets owned, {} ships in galaxy",
+            self.turn, owned_planets, total_ships
+        );
     }
 
     fn process_population_growth(&mut self) {
@@ -482,14 +495,16 @@ impl GameState {
             .copied()
             .unwrap_or(Personality::Balanced);
 
-        // Create racebot with appropriate personality
-        let racebot = Racebot::with_personality(race_id, personality);
-
         // Get race reference
         let race = match self.races.get(&race_id) {
             Some(r) => r,
             None => return,
         };
+
+        println!("  {} ({:?}) making decisions...", race.name(), personality);
+
+        // Create racebot with appropriate personality
+        let racebot = Racebot::with_personality(race_id, personality);
 
         // Make decisions (immutable borrows)
         let decisions = racebot.make_decisions(&self.galaxy, race, &self.ships);
