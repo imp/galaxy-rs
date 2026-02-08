@@ -6,6 +6,7 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
+bevy = "0.15"
 
 [lints]
 workspace = true

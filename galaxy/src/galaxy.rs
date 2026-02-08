@@ -1,14 +1,14 @@
 use crate::planet::{Planet, PlanetId, Position};
+use bevy::prelude::*;
 use std::collections::HashMap;
 
 /// The galaxy containing all planets
-#[derive(Debug)]
-#[allow(dead_code)]
+#[derive(Debug, Resource)]
 pub struct Galaxy {
     planets: HashMap<PlanetId, Planet>,
     next_planet_id: u32,
-    pub width: f64,
-    pub height: f64,
+    width: f64,
+    height: f64,
 }
 
 impl Galaxy {
@@ -21,11 +21,19 @@ impl Galaxy {
         }
     }
 
+    pub fn width(&self) -> f64 {
+        self.width
+    }
+
+    pub fn height(&self) -> f64 {
+        self.height
+    }
+
     /// Add a planet to the galaxy
     pub fn add_planet(&mut self, position: Position, size: u32, owner: Option<u32>) -> PlanetId {
         let id = PlanetId(self.next_planet_id);
         self.next_planet_id += 1;
-        
+
         let planet = Planet::new(id, position, size, owner);
         self.planets.insert(id, planet);
         id
@@ -37,13 +45,11 @@ impl Galaxy {
     }
 
     /// Get a mutable reference to a planet
-    #[allow(dead_code)]
     pub fn get_planet_mut(&mut self, id: PlanetId) -> Option<&mut Planet> {
         self.planets.get_mut(&id)
     }
 
     /// Get all planets
-    #[allow(dead_code)]
     pub fn planets(&self) -> impl Iterator<Item = &Planet> {
         self.planets.values()
     }
@@ -57,13 +63,15 @@ impl Galaxy {
     /// Get planets owned by a specific race
     #[allow(dead_code)]
     pub fn planets_owned_by(&self, race_id: u32) -> impl Iterator<Item = &Planet> {
-        self.planets.values().filter(move |p| p.owner == Some(race_id))
+        self.planets
+            .values()
+            .filter(move |p| p.owner() == Some(race_id))
     }
 
     /// Get uninhabited planets
     #[allow(dead_code)]
     pub fn uninhabited_planets(&self) -> impl Iterator<Item = &Planet> {
-        self.planets.values().filter(|p| p.owner.is_none())
+        self.planets.values().filter(|p| p.owner().is_none())
     }
 
     /// Count planets owned by a race

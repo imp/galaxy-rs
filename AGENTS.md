@@ -16,6 +16,12 @@ bd sync               # Sync with git
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
 
+## Code quality
+`cargo fmt`
+`cargo clippy --workspace --all-targets -- -D warnings`
+`cargo test --workspace`
+
+
 **MANDATORY WORKFLOW:**
 
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
@@ -37,4 +43,3 @@ bd sync               # Sync with git
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
-

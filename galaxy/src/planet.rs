@@ -1,22 +1,21 @@
 use crate::race::TechnologyType;
-use std::fmt;
+use bevy::prelude::*;
 
 /// Unique identifier for a planet
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
 pub struct PlanetId(pub u32);
 
-impl fmt::Display for PlanetId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for PlanetId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Planet{}", self.0)
     }
 }
 
 /// Position of a planet in 2D space
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Component)]
 pub struct Position {
-    pub x: f64,
-    pub y: f64,
+    x: f64,
+    y: f64,
 }
 
 impl Position {
@@ -25,7 +24,17 @@ impl Position {
     }
 
     #[allow(dead_code)]
-    pub fn distance_to(&self, other: &Position) -> f64 {
+    pub fn x(&self) -> f64 {
+        self.x
+    }
+
+    #[allow(dead_code)]
+    pub fn y(&self) -> f64 {
+        self.y
+    }
+
+    #[allow(dead_code)]
+    pub fn distance_to(&self, other: &Self) -> f64 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
         (dx * dx + dy * dy).sqrt()
@@ -33,15 +42,14 @@ impl Position {
 }
 
 /// A planet in the galaxy
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, Component)]
 pub struct Planet {
-    pub id: PlanetId,
-    pub position: Position,
-    pub size: u32,
-    pub owner: Option<u32>, // Race ID
-    pub materials: f64,
-    pub tech_focus: TechFocus,
+    id: PlanetId,
+    position: Position,
+    size: u32,
+    owner: Option<u32>, // Race ID
+    materials: f64,
+    tech_focus: TechFocus,
 }
 
 impl Planet {
@@ -54,6 +62,40 @@ impl Planet {
             materials: 0.0,
             tech_focus: TechFocus::None,
         }
+    }
+
+    pub fn id(&self) -> PlanetId {
+        self.id
+    }
+
+    #[allow(dead_code)]
+    pub fn position(&self) -> &Position {
+        &self.position
+    }
+
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+
+    pub fn owner(&self) -> Option<u32> {
+        self.owner
+    }
+
+    #[allow(dead_code)]
+    pub fn set_owner(&mut self, owner: Option<u32>) {
+        self.owner = owner;
+    }
+
+    pub fn materials(&self) -> f64 {
+        self.materials
+    }
+
+    pub fn tech_focus(&self) -> TechFocus {
+        self.tech_focus
+    }
+
+    pub fn set_tech_focus(&mut self, focus: TechFocus) {
+        self.tech_focus = focus;
     }
 
     /// Calculate material production per turn based on planet size
@@ -69,7 +111,6 @@ impl Planet {
     }
 
     /// Consume materials for ship construction
-    #[allow(dead_code)]
     pub fn consume_materials(&mut self, amount: f64) -> bool {
         if self.materials >= amount {
             self.materials -= amount;
@@ -81,8 +122,7 @@ impl Planet {
 }
 
 /// Technology focus for a planet
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
 pub enum TechFocus {
     None,
     Research(TechnologyType),

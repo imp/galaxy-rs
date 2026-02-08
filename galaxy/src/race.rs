@@ -1,17 +1,17 @@
-use std::fmt;
+use bevy::prelude::*;
 
 /// Unique identifier for a race
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
 pub struct RaceId(pub u32);
 
-impl fmt::Display for RaceId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for RaceId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Race{}", self.0)
     }
 }
 
 /// Technology types that can be advanced
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
 #[allow(dead_code)]
 pub enum TechnologyType {
     Drive,
@@ -20,11 +20,11 @@ pub enum TechnologyType {
 }
 
 /// Technology levels for a race
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Component)]
 pub struct Technology {
-    pub drive_level: u32,
-    pub weapon_level: u32,
-    pub shield_level: u32,
+    drive_level: u32,
+    weapon_level: u32,
+    shield_level: u32,
 }
 
 impl Technology {
@@ -34,6 +34,18 @@ impl Technology {
             weapon_level: 1,
             shield_level: 1,
         }
+    }
+
+    pub fn drive_level(&self) -> u32 {
+        self.drive_level
+    }
+
+    pub fn weapon_level(&self) -> u32 {
+        self.weapon_level
+    }
+
+    pub fn shield_level(&self) -> u32 {
+        self.shield_level
     }
 
     pub fn get_level(&self, tech_type: TechnologyType) -> u32 {
@@ -65,13 +77,12 @@ impl Default for Technology {
 }
 
 /// A race in the galaxy
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, Component)]
 pub struct Race {
-    pub id: RaceId,
-    pub name: String,
-    pub technology: Technology,
-    pub home_planet_id: u32,
+    id: RaceId,
+    name: String,
+    technology: Technology,
+    home_planet_id: u32,
     tech_progress: TechProgress,
 }
 
@@ -86,14 +97,32 @@ impl Race {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn id(&self) -> RaceId {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn technology(&self) -> &Technology {
+        &self.technology
+    }
+
+    #[allow(dead_code)]
+    pub fn home_planet_id(&self) -> u32 {
+        self.home_planet_id
+    }
+
     /// Add research effort to a technology type
     pub fn add_research(&mut self, tech_type: TechnologyType, effort: f64) {
         self.tech_progress.add_effort(tech_type, effort);
-        
+
         // Check if we can advance the technology
         let current_level = self.technology.get_level(tech_type);
         let required = Technology::effort_required(100, current_level); // Base calculation
-        
+
         if self.tech_progress.get_effort(tech_type) >= required {
             self.technology.advance(tech_type);
             self.tech_progress.reset(tech_type);
