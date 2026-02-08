@@ -51,14 +51,15 @@ impl Personality {
         }
     }
 
-    /// Maximum number of ships per planet
-    fn ships_per_planet_ratio(&self) -> f64 {
+    /// How aggressively to build ships (0.0 = conservative, 1.0 = build
+    /// everything)
+    fn ship_building_aggression(&self) -> f64 {
         match self {
-            Self::Aggressive => 3.0,   // Large fleet
-            Self::Defensive => 1.5,    // Smaller defensive fleet
-            Self::Expansionist => 2.5, // Many scouts
-            Self::Economic => 1.0,     // Minimal military
-            Self::Balanced => 2.0,     // Default
+            Self::Aggressive => 1.0,   // Build ships whenever possible
+            Self::Defensive => 0.4,    // Conservative, save resources
+            Self::Expansionist => 0.7, // Build many scouts
+            Self::Economic => 0.2,     // Minimal military
+            Self::Balanced => 0.5,     // Moderate
         }
     }
 
@@ -244,41 +245,28 @@ impl Racebot {
     fn decide_ship_builds(&self, state: &GameState, race: &Race) -> Vec<ShipBuild> {
         let mut builds = Vec::new();
 
-        // Use personality to determine ship design and fleet size
+        // Use personality to determine ship design
         let ship_design = self.personality.design_ship(race);
         let ship_cost = ship_design.material_cost();
 
-        // Dynamic fleet cap: increases as empire grows
-        // Base cap + (owned_planets * ratio)
-        let base_cap = 5.0; // Always want at least 5 ships
-        let max_ships = (base_cap
-            + state.owned_planets.len() as f64 * self.personality.ships_per_planet_ratio())
-        .ceil() as usize;
+        // Calculate how much we can/should spend on ships this turn
+        let available_materials = state.total_materials;
+        let aggression = self.personality.ship_building_aggression();
 
-        // Only build if under fleet cap
-        if state.owned_ships.len() >= max_ships {
-            return builds;
-        }
+        // Aggressive personalities spend more of their materials on ships
+        let materials_to_spend = available_materials * aggression;
+        let max_builds = (materials_to_spend / ship_cost).floor() as usize;
 
-        let ships_needed = max_ships - state.owned_ships.len();
-        let mut ships_queued = 0;
+        // Don't build more ships than we have planets (1 per planet max per turn)
+        let max_builds = max_builds.min(state.owned_planets.len());
 
-        // Build ships from planets that can afford them
-        for planet_id in &state.owned_planets {
-            if ships_queued >= ships_needed {
-                break;
-            }
-
-            // Check if this planet has enough materials (approximate - actual check in
-            // execute) We check total_materials to see if empire can afford it
-            if state.total_materials >= ship_cost * (ships_queued as f64 + 1.0) {
-                builds.push(ShipBuild {
-                    planet_id: *planet_id,
-                    design: ship_design,
-                    name: format!("{:?}-{}", self.personality, planet_id.0),
-                });
-                ships_queued += 1;
-            }
+        // Build ships from planets with the most materials
+        for planet_id in state.owned_planets.iter().take(max_builds) {
+            builds.push(ShipBuild {
+                planet_id: *planet_id,
+                design: ship_design,
+                name: format!("{:?}-{}", self.personality, planet_id.0),
+            });
         }
 
         builds
@@ -562,7 +550,7 @@ mod tests {
         assert!(design.cargo_mass() > 0.0);
         assert_eq!(design.attacks(), 0);
         assert_eq!(Personality::Expansionist.colonization_priority(), 1.0);
-        assert!(Personality::Expansionist.ships_per_planet_ratio() > 2.0);
+        assert!(Personality::Expansionist.ship_building_aggression() > 0.5);
     }
 
     #[test]
@@ -581,7 +569,7 @@ mod tests {
         let design = Personality::Economic.design_ship(race);
         assert!(design.cargo_mass() >= 3.0);
         assert_eq!(design.attacks(), 0);
-        assert_eq!(Personality::Economic.ships_per_planet_ratio(), 1.0);
+        assert!(Personality::Economic.ship_building_aggression() < 0.5);
     }
 
     #[test]
