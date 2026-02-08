@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 
+use crate::diplomacy::Diplomacy;
 use crate::galaxy::Galaxy;
 use crate::planet::PlanetId;
 use crate::planet::TechFocus;
@@ -19,6 +20,7 @@ pub struct GameState {
     galaxy: Galaxy,
     races: HashMap<RaceId, Race>,
     ships: HashMap<ShipId, Ship>,
+    diplomacy: Diplomacy,
     next_race_id: u32,
     next_ship_id: u32,
     turn: u32,
@@ -30,6 +32,7 @@ impl GameState {
             galaxy: Galaxy::new(galaxy_width, galaxy_height),
             races: HashMap::new(),
             ships: HashMap::new(),
+            diplomacy: Diplomacy::new(),
             next_race_id: 0,
             next_ship_id: 0,
             turn: 0,
@@ -46,6 +49,14 @@ impl GameState {
 
     pub fn turn(&self) -> u32 {
         self.turn
+    }
+
+    pub fn diplomacy(&self) -> &Diplomacy {
+        &self.diplomacy
+    }
+
+    pub fn diplomacy_mut(&mut self) -> &mut Diplomacy {
+        &mut self.diplomacy
     }
 
     /// Add a new race to the game

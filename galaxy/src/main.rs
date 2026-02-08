@@ -1,9 +1,11 @@
+mod diplomacy;
 mod galaxy;
 mod game_state;
 mod planet;
 mod race;
 mod ship;
 
+use diplomacy::Relationship;
 use game_state::GameState;
 use planet::Position;
 use planet::TechFocus;
@@ -134,6 +136,36 @@ fn main() {
             }
         }
     }
+
+    // Test diplomacy system
+    println!("\n--- Diplomacy Test ---");
+    println!(
+        "Humans vs Aliens: {:?}",
+        game.diplomacy().get_relationship(race1, race2)
+    );
+
+    // Make them hostile
+    game.diplomacy_mut().make_hostile(race1, race2);
+    println!(
+        "After declaring war: {:?}",
+        game.diplomacy().get_relationship(race1, race2)
+    );
+    println!(
+        "Should attack: {}",
+        game.diplomacy().should_attack(race1, race2)
+    );
+
+    // Make them friendly
+    game.diplomacy_mut()
+        .set_relationship(race1, race2, Relationship::Friendly);
+    println!(
+        "After alliance: {:?}",
+        game.diplomacy().get_relationship(race1, race2)
+    );
+    println!(
+        "Should attack: {}",
+        game.diplomacy().should_attack(race1, race2)
+    );
 
     println!("\n=== Simulation Complete ===");
 }
