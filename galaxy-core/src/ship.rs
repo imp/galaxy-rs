@@ -114,7 +114,6 @@ impl ShipDesign {
 
 /// Cargo types that ships can carry
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[allow(dead_code)] // Used in tests and future game mechanics // Used in tests and future game mechanics
 pub enum CargoType {
     Colonists,
     Materials,

@@ -13,7 +13,6 @@ use crate::ship::ShipLocation;
 
 /// Behavioral personality for AI decision making
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)] // Variants used in integration tests, not main binary yet
 pub enum Personality {
     /// Aggressive: Builds warships, seeks combat, attacks readily
     Aggressive,

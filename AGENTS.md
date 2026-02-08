@@ -84,6 +84,8 @@ Use it instead of `#[allow()]` to get automatic cleanup warnings.
 - **Import grouping**: rustfmt groups imports as `StdExternalCrate` with individual items
   - Example: `use std::fmt;` and then `impl fmt::Display for Foo`
   - Example: `use std::io;` and then `fn foo() -> io::Result<()>`
+- **Use `#[expect(...)]` not `#[allow(...)]`**: Expect is more explicit about intentionality
+  - Example: `#[expect(dead_code)]` instead of `#[allow(dead_code)]`
 - **Let-chains for nested conditions**: Use `if let Some(x) = ... && condition` instead of nested ifs
 - **Prefer map_or over map().unwrap_or()**: clippy warns about the latter
 - **Avoid .clone() on Copy types**: Use the value directly
