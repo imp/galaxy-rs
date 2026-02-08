@@ -10,6 +10,8 @@ use crate::planet::TechFocus;
 use crate::race::Race;
 use crate::race::RaceId;
 use crate::race::TechnologyType;
+use crate::racebot::Personality;
+use crate::racebot::Racebot;
 use crate::ship::Ship;
 use crate::ship::ShipDesign;
 use crate::ship::ShipId;
@@ -22,6 +24,7 @@ pub struct GameState {
     races: HashMap<RaceId, Race>,
     ships: HashMap<ShipId, Ship>,
     diplomacy: Diplomacy,
+    ai_personalities: HashMap<RaceId, Personality>,
     next_race_id: u32,
     next_ship_id: u32,
     turn: u32,
@@ -35,6 +38,7 @@ impl GameState {
             races: HashMap::new(),
             ships: HashMap::new(),
             diplomacy: Diplomacy::new(),
+            ai_personalities: HashMap::new(),
             next_race_id: 0,
             next_ship_id: 0,
             turn: 0,
@@ -71,6 +75,22 @@ impl GameState {
         id
     }
 
+    /// Add a new AI-controlled race with specified personality
+    pub fn add_ai_race(
+        &mut self,
+        name: String,
+        home_planet_id: u32,
+        personality: Personality,
+    ) -> RaceId {
+        let id = RaceId(self.next_race_id);
+        self.next_race_id += 1;
+
+        let race = Race::new_ai(id, name, home_planet_id);
+        self.races.insert(id, race);
+        self.ai_personalities.insert(id, personality);
+        id
+    }
+
     /// Get a race by ID
     pub fn get_race(&self, id: RaceId) -> Option<&Race> {
         self.races.get(&id)
@@ -89,6 +109,9 @@ impl GameState {
     /// Process one turn of the game
     pub fn advance_turn(&mut self) {
         self.turn += 1;
+
+        // 0. Process AI decisions for all AI-controlled races
+        self.process_ai_turns();
 
         // 1. Execute production on all planets
         self.galaxy.execute_production();
@@ -406,10 +429,15 @@ impl GameState {
 
     /// Run racebot for a specific race
     pub fn run_racebot(&mut self, race_id: RaceId) {
-        use crate::racebot::Racebot;
+        // Get personality if stored, otherwise use Balanced
+        let personality = self
+            .ai_personalities
+            .get(&race_id)
+            .copied()
+            .unwrap_or(Personality::Balanced);
 
-        // Create racebot for this race
-        let racebot = Racebot::new(race_id);
+        // Create racebot with appropriate personality
+        let racebot = Racebot::with_personality(race_id, personality);
 
         // Get race reference
         let race = match self.races.get(&race_id) {
@@ -422,5 +450,21 @@ impl GameState {
 
         // Execute decisions (mutable borrows)
         self.execute_racebot_decisions(race_id, decisions);
+    }
+
+    /// Process AI turns for all AI-controlled races
+    fn process_ai_turns(&mut self) {
+        // Collect AI race IDs first (to avoid borrow checker issues)
+        let ai_races: Vec<RaceId> = self
+            .races
+            .values()
+            .filter(|r| r.is_ai_controlled())
+            .map(|r| r.id())
+            .collect();
+
+        // Run racebot for each AI race
+        for race_id in ai_races {
+            self.run_racebot(race_id);
+        }
     }
 }

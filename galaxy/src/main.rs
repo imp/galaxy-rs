@@ -1,3 +1,5 @@
+#![allow(unused_crate_dependencies)] // Binary uses galaxy as extern crate for tests
+
 mod combat;
 mod diplomacy;
 mod galaxy;

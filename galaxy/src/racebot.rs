@@ -13,7 +13,7 @@ use crate::ship::ShipLocation;
 
 /// Behavioral personality for AI decision making
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(not(test), expect(dead_code))] // Variants used in tests
+#[allow(dead_code)] // Variants used in integration tests, not main binary yet
 pub enum Personality {
     /// Aggressive: Builds warships, seeks combat, attacks readily
     Aggressive,
@@ -101,20 +101,13 @@ impl Personality {
 }
 
 /// AI controller for automated race management
+#[derive(Debug)]
 pub struct Racebot {
     race_id: RaceId,
     personality: Personality,
 }
 
 impl Racebot {
-    pub fn new(race_id: RaceId) -> Self {
-        Self {
-            race_id,
-            personality: Personality::Balanced,
-        }
-    }
-
-    #[cfg_attr(not(test), expect(dead_code))] // Used in tests
     pub fn with_personality(race_id: RaceId, personality: Personality) -> Self {
         Self {
             race_id,
@@ -122,7 +115,7 @@ impl Racebot {
         }
     }
 
-    #[expect(dead_code)]
+    #[allow(dead_code)]
     pub fn race_id(&self) -> RaceId {
         self.race_id
     }
@@ -316,7 +309,7 @@ struct GameState {
 }
 
 /// Decisions made by the racebot
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct RacebotDecisions {
     pub production_orders: HashMap<PlanetId, ProductionType>,
     pub ship_builds: Vec<ShipBuild>,
@@ -324,14 +317,16 @@ pub struct RacebotDecisions {
 }
 
 /// Order to build a ship
+#[derive(Debug)]
 pub struct ShipBuild {
     pub planet_id: PlanetId,
     pub design: ShipDesign,
-    #[expect(dead_code)]
+    #[allow(dead_code)]
     pub name: String,
 }
 
 /// Order to move a ship
+#[derive(Debug)]
 pub struct ShipMovement {
     pub ship_id: ShipId,
     pub destination: PlanetId,
@@ -359,7 +354,7 @@ mod tests {
             .add_planet(Position::new(400.0, 400.0), 30, None);
 
         // Create racebot
-        let racebot = Racebot::new(race_id);
+        let racebot = Racebot::with_personality(race_id, Personality::Balanced);
 
         // Analyze state
         let race = game.get_race(race_id).unwrap();
@@ -441,7 +436,7 @@ mod tests {
             .galaxy_mut()
             .add_planet(Position::new(800.0, 800.0), 30, None);
 
-        let racebot = Racebot::new(race_id);
+        let racebot = Racebot::with_personality(race_id, Personality::Balanced);
         let race = game.get_race(race_id).unwrap();
         let ships = HashMap::new();
         let state = racebot.analyze_state(game.galaxy(), race, &ships);

@@ -85,6 +85,7 @@ pub struct Race {
     technology: Technology,
     home_planet_id: u32,
     tech_progress: TechProgress,
+    ai_controlled: bool,
 }
 
 #[allow(dead_code)]
@@ -96,12 +97,28 @@ impl Race {
             technology: Technology::new(),
             home_planet_id,
             tech_progress: TechProgress::new(),
+            ai_controlled: false, // Human-controlled by default
+        }
+    }
+
+    pub fn new_ai(id: RaceId, name: String, home_planet_id: u32) -> Self {
+        Self {
+            id,
+            name,
+            technology: Technology::new(),
+            home_planet_id,
+            tech_progress: TechProgress::new(),
+            ai_controlled: true,
         }
     }
 
     #[allow(dead_code)]
     pub fn id(&self) -> RaceId {
         self.id
+    }
+
+    pub fn is_ai_controlled(&self) -> bool {
+        self.ai_controlled
     }
 
     pub fn name(&self) -> &str {
