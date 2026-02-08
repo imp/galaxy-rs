@@ -39,13 +39,14 @@
 - **AI Personalities**: 5 different strategies
 
 ## Current Work 🔄
-- **galaxy-0ti**: Probabilistic Combat System (IN PROGRESS)
-  - Implementing GalaxyNG probability formulas
-  - p[kill] = (log4(attack/defence) + 1) / 2
-  - Round-by-round combat resolution
+- **galaxy-syu**: Planet Bombing and Capture (IN PROGRESS)
+  - Ships bomb enemy planets
+  - Reduces population/industry by 75%
+  - Winner captures planet
+  - Unowned if standoff
 
 ## Remaining Work 📋
-- **galaxy-syu**: Planet Bombing and Capture (P3)
+- None! This is the final task.
 
 ## Recent Commits
 - cdf47a5: Update issue tracking

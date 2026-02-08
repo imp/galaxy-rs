@@ -311,6 +311,13 @@ impl Planet {
             }
         }
     }
+
+    /// Bomb the planet, reducing population and industry by 75%
+    /// This is called when enemy ships attack an owned planet
+    pub fn bomb(&mut self) {
+        self.population *= 0.25;
+        self.industry *= 0.25;
+    }
 }
 
 /// Production type for a planet
@@ -467,4 +474,31 @@ fn test_materials_production() {
     // Production = 100, resources = 5.0
     // Materials = 100 × 5.0 = 500
     assert_eq!(planet.materials(), 500.0);
+}
+
+#[test]
+fn test_planet_bombing() {
+    let mut planet = Planet::new_home_planet(PlanetId(1), Position::new(100.0, 100.0), 100, 0);
+
+    let initial_pop = planet.population();
+    let initial_ind = planet.industry();
+
+    planet.bomb();
+
+    // Bombing reduces both to 25% (multiplies by 0.25)
+    assert_eq!(planet.population(), initial_pop * 0.25);
+    assert_eq!(planet.industry(), initial_ind * 0.25);
+}
+
+#[test]
+fn test_planet_ownership_change() {
+    let mut planet = Planet::new_home_planet(PlanetId(1), Position::new(100.0, 100.0), 100, 0);
+
+    assert_eq!(planet.owner(), Some(0));
+
+    planet.set_owner(Some(1));
+    assert_eq!(planet.owner(), Some(1));
+
+    planet.set_owner(None);
+    assert!(planet.owner().is_none());
 }

@@ -124,7 +124,10 @@ impl GameState {
         // 4. Process combat encounters
         self.process_combat();
 
-        // 5. Grow population on all planets
+        // 5. Process planet bombing and capture
+        self.process_planet_bombing();
+
+        // 6. Grow population on all planets
         self.process_population_growth();
     }
 
@@ -393,6 +396,57 @@ impl GameState {
         }
     }
 
+    /// Process planet bombing and capture
+    /// Ships at enemy planets bomb them (reduce pop/industry by 75%)
+    /// Planet ownership changes based on remaining ships:
+    /// - Only one race has ships -> that race captures planet
+    /// - Multiple races or no ships -> planet becomes unowned
+    fn process_planet_bombing(&mut self) {
+        use std::collections::HashMap;
+        use std::collections::HashSet;
+
+        // Group ships by planet location
+        let mut ships_at_planets: HashMap<PlanetId, Vec<RaceId>> = HashMap::new();
+        for ship in self.ships.values() {
+            if let ShipLocation::AtPlanet(planet_id) = ship.location() {
+                ships_at_planets
+                    .entry(*planet_id)
+                    .or_default()
+                    .push(ship.owner());
+            }
+        }
+
+        // Process each planet with ships
+        for (planet_id, ship_owners) in ships_at_planets {
+            let Some(planet) = self.galaxy.get_planet_mut(planet_id) else {
+                continue;
+            };
+
+            // Get unique races at this planet
+            let unique_races: HashSet<RaceId> = ship_owners.into_iter().collect();
+
+            // If planet is owned and has enemy ships, bomb it
+            if let Some(planet_owner) = planet.owner() {
+                let has_enemy_ships = unique_races.iter().any(|race| race.0 != planet_owner);
+
+                if has_enemy_ships {
+                    planet.bomb();
+                }
+            }
+
+            // Determine new ownership:
+            // - If exactly one race has ships -> they capture planet
+            // - If multiple races or no ships -> unowned
+            let new_owner = if unique_races.len() == 1 {
+                Some(unique_races.iter().next().unwrap().0)
+            } else {
+                None
+            };
+
+            planet.set_owner(new_owner);
+        }
+    }
+
     /// Execute racebot decisions
     pub fn execute_racebot_decisions(
         &mut self,
@@ -458,5 +512,118 @@ impl GameState {
         for race_id in ai_races {
             self.run_racebot(race_id);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::planet::Position;
+    use crate::ship::Ship;
+    use crate::ship::ShipDesign;
+    use crate::ship::ShipId;
+
+    #[test]
+    fn test_planet_bombing_reduces_pop_and_industry() {
+        let mut game = GameState::new(1000.0, 1000.0);
+
+        // Create a planet owned by race 0
+        let planet_id = game
+            .galaxy
+            .add_planet(Position::new(100.0, 100.0), 100, Some(0));
+
+        let initial_pop = game.galaxy.get_planet(planet_id).unwrap().population();
+        let initial_ind = game.galaxy.get_planet(planet_id).unwrap().industry();
+
+        // Add race 1 ship at the planet (enemy ship)
+        let design = ShipDesign::new(1.0, 1, 2.0, 2.0, 0.0);
+        let ship = Ship::new(ShipId(1), RaceId(1), design, planet_id);
+        game.ships.insert(ShipId(1), ship);
+
+        // Process bombing
+        game.process_planet_bombing();
+
+        let planet = game.galaxy.get_planet(planet_id).unwrap();
+
+        // Population and industry should be 25% of original
+        assert!((planet.population() - initial_pop * 0.25).abs() < 0.01);
+        assert!((planet.industry() - initial_ind * 0.25).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_planet_capture_single_race() {
+        let mut game = GameState::new(1000.0, 1000.0);
+
+        // Create a planet owned by race 0
+        let planet_id = game
+            .galaxy
+            .add_planet(Position::new(100.0, 100.0), 100, Some(0));
+
+        // Add race 1 ship at the planet
+        let design = ShipDesign::new(1.0, 1, 2.0, 2.0, 0.0);
+        let ship = Ship::new(ShipId(1), RaceId(1), design, planet_id);
+        game.ships.insert(ShipId(1), ship);
+
+        // Process bombing
+        game.process_planet_bombing();
+
+        let planet = game.galaxy.get_planet(planet_id).unwrap();
+
+        // Planet should be captured by race 1
+        assert_eq!(planet.owner(), Some(1));
+    }
+
+    #[test]
+    fn test_planet_unowned_multiple_races() {
+        let mut game = GameState::new(1000.0, 1000.0);
+
+        // Create a planet owned by race 0
+        let planet_id = game
+            .galaxy
+            .add_planet(Position::new(100.0, 100.0), 100, Some(0));
+
+        // Add ships from race 1 and race 2 at the planet
+        let design = ShipDesign::new(1.0, 1, 2.0, 2.0, 0.0);
+        let ship1 = Ship::new(ShipId(1), RaceId(1), design.clone(), planet_id);
+        let ship2 = Ship::new(ShipId(2), RaceId(2), design, planet_id);
+        game.ships.insert(ShipId(1), ship1);
+        game.ships.insert(ShipId(2), ship2);
+
+        // Process bombing
+        game.process_planet_bombing();
+
+        let planet = game.galaxy.get_planet(planet_id).unwrap();
+
+        // Planet should be unowned due to multiple races
+        assert!(planet.owner().is_none());
+    }
+
+    #[test]
+    fn test_friendly_ships_no_bombing() {
+        let mut game = GameState::new(1000.0, 1000.0);
+
+        // Create a planet owned by race 0
+        let planet_id = game
+            .galaxy
+            .add_planet(Position::new(100.0, 100.0), 100, Some(0));
+
+        let initial_pop = game.galaxy.get_planet(planet_id).unwrap().population();
+        let initial_ind = game.galaxy.get_planet(planet_id).unwrap().industry();
+
+        // Add race 0 ship at the planet (friendly ship)
+        let design = ShipDesign::new(1.0, 1, 2.0, 2.0, 0.0);
+        let ship = Ship::new(ShipId(1), RaceId(0), design, planet_id);
+        game.ships.insert(ShipId(1), ship);
+
+        // Process bombing
+        game.process_planet_bombing();
+
+        let planet = game.galaxy.get_planet(planet_id).unwrap();
+
+        // Population and industry should be unchanged (no enemy ships)
+        assert_eq!(planet.population(), initial_pop);
+        assert_eq!(planet.industry(), initial_ind);
+        // Ownership unchanged
+        assert_eq!(planet.owner(), Some(0));
     }
 }
