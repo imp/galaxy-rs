@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 
+use crate::combat::CombatSystem;
 use crate::diplomacy::Diplomacy;
 use crate::galaxy::Galaxy;
 use crate::planet::PlanetId;
@@ -97,6 +98,9 @@ impl GameState {
 
         // 3. Process ship movement
         self.process_ship_movement();
+
+        // 4. Process combat encounters
+        self.process_combat();
     }
 
     fn process_technology_advancement(&mut self) {
@@ -253,6 +257,69 @@ impl GameState {
                         progress: new_progress,
                     });
                 }
+            }
+        }
+    }
+
+    fn process_combat(&mut self) {
+        // Find ships at the same planet that should fight
+        let mut combat_pairs: Vec<(ShipId, ShipId)> = Vec::new();
+
+        // Group ships by planet
+        let mut ships_at_planets: HashMap<PlanetId, Vec<(ShipId, RaceId)>> = HashMap::new();
+
+        for (ship_id, ship) in &self.ships {
+            if let ShipLocation::AtPlanet(planet_id) = ship.location() {
+                ships_at_planets
+                    .entry(*planet_id)
+                    .or_default()
+                    .push((*ship_id, ship.owner()));
+            }
+        }
+
+        // Find hostile pairs
+        for ships in ships_at_planets.values() {
+            for i in 0..ships.len() {
+                for j in (i + 1)..ships.len() {
+                    let (ship1_id, race1) = ships[i];
+                    let (ship2_id, race2) = ships[j];
+
+                    if self.diplomacy.should_attack(race1, race2) {
+                        combat_pairs.push((ship1_id, ship2_id));
+                        // Mark races as hostile if they weren't already
+                        self.diplomacy.make_hostile(race1, race2);
+                    }
+                }
+            }
+        }
+
+        // Process combat
+        let mut ships_to_remove = Vec::new();
+
+        for (ship1_id, ship2_id) in combat_pairs {
+            // Skip if either ship was already destroyed in a previous combat
+            if !self.ships.contains_key(&ship1_id) || !self.ships.contains_key(&ship2_id) {
+                continue;
+            }
+
+            // Remove both ships temporarily to get mutable access
+            let mut ship1 = self.ships.remove(&ship1_id).unwrap();
+            let mut ship2 = self.ships.remove(&ship2_id).unwrap();
+
+            // Resolve combat
+            let result = CombatSystem::resolve_combat(&mut ship1, &mut ship2);
+
+            // Put survivors back
+            if result.attacker_survived {
+                self.ships.insert(ship1_id, ship1);
+            } else {
+                ships_to_remove.push(ship1_id);
+            }
+
+            if result.defender_survived {
+                self.ships.insert(ship2_id, ship2);
+            } else {
+                ships_to_remove.push(ship2_id);
             }
         }
     }

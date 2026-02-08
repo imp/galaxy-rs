@@ -1,3 +1,4 @@
+mod combat;
 mod diplomacy;
 mod galaxy;
 mod game_state;
