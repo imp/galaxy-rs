@@ -74,6 +74,9 @@ Use it instead of `#[allow()]` to get automatic cleanup warnings.
 - **Encapsulation**: Use private fields with public getters/setters
 - **No public struct fields**: Prefer accessor methods for better API control
 - **Bevy Components**: Derive `Component` for entities, `Resource` for singletons
+- **Import style**: One import per line (no grouped imports like `use foo::{A, B}`)
+  - Example: `use std::fmt::Display;` and `use std::fmt::Debug;` on separate lines
+  - rustfmt handles this automatically with default settings
 - **Import grouping**: rustfmt groups imports as `StdExternalCrate` with individual items
   - Example: `use std::fmt;` and then `impl fmt::Display for Foo`
   - Example: `use std::io;` and then `fn foo() -> io::Result<()>`

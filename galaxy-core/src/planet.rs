@@ -1,3 +1,5 @@
+use std::fmt;
+
 use bevy::prelude::*;
 
 use crate::race::TechnologyType;
@@ -6,9 +8,9 @@ use crate::race::TechnologyType;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
 pub struct PlanetId(pub u32);
 
-impl std::fmt::Display for PlanetId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Planet{}", self.0)
+impl fmt::Display for PlanetId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("PlanetId").field(&self.0).finish()
     }
 }
 
