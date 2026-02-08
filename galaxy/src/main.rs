@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use galaxy_core::init::{initialize_game, GameConfig};
+use galaxy_core::init::GameConfig;
+use galaxy_core::init::initialize_game;
 use galaxy_core::rendering::RenderingPlugin;
 
 fn main() {

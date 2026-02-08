@@ -14,6 +14,9 @@ license = "MIT OR Apache-2.0"
 bevy = "0.15"
 rand = "0.8"
 
+# Local dependencies
+galaxy-core = { path = "galaxy-core" }
+
 
 [workspace.lints.clippy]
 inefficient_to_string = "warn"
