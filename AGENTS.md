@@ -26,11 +26,11 @@ making it easy to spot and remove unneeded attributes. This keeps the codebase c
 **Strategy:**
 1. Remove all `#[allow(dead_code)]` attributes
 2. Run clippy to see what's actually unused
-3. Add targeted `#[allow(dead_code)]` only where needed
-4. When code becomes used, clippy will warn about unnecessary allows
+3. Add targeted `#[expect(dead_code)]` only where needed
+4. When code becomes used, clippy will warn about unnecessary expects
 
-Note: `#[expect()]` requires nightly Rust. Use `#[allow()]` on stable but
-periodically audit and remove unnecessary ones.
+Note: `#[expect()]` is available on stable Rust (stabilized in 1.81.0).
+Use it instead of `#[allow()]` to get automatic cleanup warnings.
 
 ### Code style
 - **Encapsulation**: Use private fields with public getters/setters
