@@ -42,6 +42,7 @@ Use it instead of `#[allow()]` to get automatic cleanup warnings.
 - **Bevy Components**: Derive `Component` for entities, `Resource` for singletons
 - **Import grouping**: rustfmt groups imports as `StdExternalCrate` with individual items
 
+- ** `use std::fmt` and then `impl fmt::Display for Foo`
 
 ## Landing the Plane (Session Completion)
 

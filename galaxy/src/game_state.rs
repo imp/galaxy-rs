@@ -268,7 +268,13 @@ impl GameState {
 
         for (ship_id, from, to, progress, distance) in movements {
             if let Some(ship) = self.ships.get_mut(&ship_id) {
-                let speed = ship.travel_speed();
+                // Get drive technology for this ship's owner
+                let drive_tech = self
+                    .races
+                    .get(&ship.owner())
+                    .map_or(1.0, |r| r.technology().drive_level() as f64);
+
+                let speed = ship.travel_speed(drive_tech);
                 let new_progress = progress + (speed / distance.max(1.0));
 
                 if new_progress >= 1.0 {
@@ -338,8 +344,24 @@ impl GameState {
             let mut ship1 = self.ships.remove(&ship1_id).unwrap();
             let mut ship2 = self.ships.remove(&ship2_id).unwrap();
 
+            // Get weapon technology for both races
+            let ship1_weapons_tech = self
+                .races
+                .get(&ship1.owner())
+                .map_or(1.0, |r| r.technology().weapon_level() as f64);
+
+            let ship2_weapons_tech = self
+                .races
+                .get(&ship2.owner())
+                .map_or(1.0, |r| r.technology().weapon_level() as f64);
+
             // Resolve combat
-            let result = CombatSystem::resolve_combat(&mut ship1, &mut ship2);
+            let result = CombatSystem::resolve_combat(
+                &mut ship1,
+                ship1_weapons_tech,
+                &mut ship2,
+                ship2_weapons_tech,
+            );
 
             // Put survivors back
             if result.attacker_survived {

@@ -427,62 +427,47 @@ mod tests {
     }
 }
 
-    #[test]
-    fn test_capital_production_with_materials() {
-        let mut planet = Planet::new_home_planet(
-            PlanetId(1),
-            Position::new(100.0, 100.0),
-            100,
-            0,
-        );
+#[test]
+fn test_capital_production_with_materials() {
+    let mut planet = Planet::new_home_planet(PlanetId(1), Position::new(100.0, 100.0), 100, 0);
 
-        planet.set_production_type(ProductionType::Capital);
-        planet.add_materials(100.0); // Plenty of materials
+    planet.set_production_type(ProductionType::Capital);
+    planet.add_materials(100.0); // Plenty of materials
 
-        // Production = 100, need 500 production for 100 capital
-        // With 100 materials stockpiled, can make 20 capital (5 prod each)
-        planet.execute_production();
+    // Production = 100, need 500 production for 100 capital
+    // With 100 materials stockpiled, can make 20 capital (5 prod each)
+    planet.execute_production();
 
-        assert_eq!(planet.capital(), 20.0);
-        assert_eq!(planet.materials(), 80.0); // Used 20 materials
-    }
+    assert_eq!(planet.capital(), 20.0);
+    assert_eq!(planet.materials(), 80.0); // Used 20 materials
+}
 
-    #[test]
-    fn test_capital_production_auto_materials() {
-        let mut planet = Planet::new_home_planet(
-            PlanetId(1),
-            Position::new(100.0, 100.0),
-            100,
-            0,
-        );
+#[test]
+fn test_capital_production_auto_materials() {
+    let mut planet = Planet::new_home_planet(PlanetId(1), Position::new(100.0, 100.0), 100, 0);
 
-        planet.set_production_type(ProductionType::Capital);
-        planet.set_resources(10.0);
-        // No materials stockpile, production = 100, resources = 10
+    planet.set_production_type(ProductionType::Capital);
+    planet.set_resources(10.0);
+    // No materials stockpile, production = 100, resources = 10
 
-        planet.execute_production();
+    planet.execute_production();
 
-        // Some capital should be produced (with auto-material generation)
-        assert!(planet.capital() > 0.0);
-        // With prod=100, resources=10, should make ~13.3 capital
-        assert!((planet.capital() - 13.3).abs() < 0.5);
-    }
+    // Some capital should be produced (with auto-material generation)
+    assert!(planet.capital() > 0.0);
+    // With prod=100, resources=10, should make ~13.3 capital
+    assert!((planet.capital() - 13.3).abs() < 0.5);
+}
 
-    #[test]
-    fn test_materials_production() {
-        let mut planet = Planet::new_home_planet(
-            PlanetId(1),
-            Position::new(100.0, 100.0),
-            100,
-            0,
-        );
+#[test]
+fn test_materials_production() {
+    let mut planet = Planet::new_home_planet(PlanetId(1), Position::new(100.0, 100.0), 100, 0);
 
-        planet.set_production_type(ProductionType::Materials);
-        planet.set_resources(5.0);
+    planet.set_production_type(ProductionType::Materials);
+    planet.set_resources(5.0);
 
-        planet.execute_production();
+    planet.execute_production();
 
-        // Production = 100, resources = 5.0
-        // Materials = 100 × 5.0 = 500
-        assert_eq!(planet.materials(), 500.0);
-    }
+    // Production = 100, resources = 5.0
+    // Materials = 100 × 5.0 = 500
+    assert_eq!(planet.materials(), 500.0);
+}

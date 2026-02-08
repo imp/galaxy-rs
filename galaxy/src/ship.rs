@@ -13,66 +13,96 @@ impl std::fmt::Display for ShipId {
     }
 }
 
-/// Ship design specification
+/// Ship design specification (GalaxyNG format)
 #[derive(Debug, Clone, Copy, PartialEq, Component)]
 pub struct ShipDesign {
-    hull_strength: u32,
-    engine_power: u32,
-    cannon_count: u32,
-    cannon_power: u32,
+    drive_mass: f64,
+    attacks: u32,
+    weapons_mass: f64,
+    shields_mass: f64,
+    cargo_mass: f64,
 }
 
 #[allow(dead_code)]
 impl ShipDesign {
-    pub fn new(hull: u32, engine: u32, cannon_count: u32, cannon_power: u32) -> Self {
-        Self {
-            hull_strength: hull,
-            engine_power: engine,
-            cannon_count,
-            cannon_power,
-        }
-    }
-
-    pub fn hull_strength(&self) -> u32 {
-        self.hull_strength
-    }
-
-    pub fn engine_power(&self) -> u32 {
-        self.engine_power
-    }
-
-    pub fn cannon_count(&self) -> u32 {
-        self.cannon_count
-    }
-
-    pub fn cannon_power(&self) -> u32 {
-        self.cannon_power
-    }
-
-    /// Calculate total material cost for this ship design
-    pub fn material_cost(&self) -> f64 {
-        let hull_cost = self.hull_strength as f64 * 2.0;
-        let engine_cost = self.engine_power as f64 * 3.0;
-        let weapon_cost = (self.cannon_count * self.cannon_power) as f64 * 1.5;
-        hull_cost + engine_cost + weapon_cost
-    }
-
-    /// Apply race technology bonuses to ship design
-    #[allow(dead_code)]
-    pub fn with_tech_bonus(
-        hull: u32,
-        engine: u32,
-        cannons: u32,
-        drive_tech: u32,
-        weapon_tech: u32,
-        shield_tech: u32,
+    pub fn new(
+        drive_mass: f64,
+        attacks: u32,
+        weapons_mass: f64,
+        shields_mass: f64,
+        cargo_mass: f64,
     ) -> Self {
         Self {
-            hull_strength: hull * shield_tech,
-            engine_power: engine * drive_tech,
-            cannon_count: cannons,
-            cannon_power: weapon_tech,
+            drive_mass,
+            attacks,
+            weapons_mass,
+            shields_mass,
+            cargo_mass,
         }
+    }
+
+    pub fn drive_mass(&self) -> f64 {
+        self.drive_mass
+    }
+
+    pub fn attacks(&self) -> u32 {
+        self.attacks
+    }
+
+    pub fn weapons_mass(&self) -> f64 {
+        self.weapons_mass
+    }
+
+    pub fn shields_mass(&self) -> f64 {
+        self.shields_mass
+    }
+
+    pub fn cargo_mass(&self) -> f64 {
+        self.cargo_mass
+    }
+
+    /// Calculate ship mass: D + W + S + C + (attacks-1) × W/2
+    pub fn ship_mass(&self) -> f64 {
+        let base = self.drive_mass + self.weapons_mass + self.shields_mass + self.cargo_mass;
+        let additional_attacks = if self.attacks > 1 {
+            (self.attacks - 1) as f64 * self.weapons_mass / 2.0
+        } else {
+            0.0
+        };
+        base + additional_attacks
+    }
+
+    /// Calculate material cost: ship mass × 1 (1 material per mass unit)
+    pub fn material_cost(&self) -> f64 {
+        self.ship_mass()
+    }
+
+    /// Calculate speed: 20 × drive_tech × (drive_mass / (ship_mass + cargo))
+    pub fn speed(&self, drive_tech: f64, cargo_carried: f64) -> f64 {
+        if self.drive_mass == 0.0 {
+            return 0.0; // Immobile ships
+        }
+        20.0 * drive_tech * (self.drive_mass / (self.ship_mass() + cargo_carried))
+    }
+
+    /// Calculate attack strength: weapons_mass × weapons_tech
+    pub fn attack_strength(&self, weapons_tech: f64) -> f64 {
+        self.weapons_mass * weapons_tech
+    }
+
+    /// Calculate defence strength: (shields × shields_tech / (mass +
+    /// cargo)^(1/3)) × 30^(1/3)
+    pub fn defence_strength(&self, shields_tech: f64, cargo_carried: f64) -> f64 {
+        if self.shields_mass == 0.0 {
+            return 0.0;
+        }
+        let total_mass = self.ship_mass() + cargo_carried;
+        (self.shields_mass * shields_tech / total_mass.powf(1.0 / 3.0)) * 30.0_f64.powf(1.0 / 3.0)
+    }
+
+    /// Calculate cargo capacity: cargo_mass + cargo_mass²/10
+    pub fn base_cargo_capacity(&self) -> f64 {
+        self.cargo_mass + (self.cargo_mass * self.cargo_mass) / 10.0
     }
 }
 
@@ -82,7 +112,7 @@ pub struct Ship {
     id: ShipId,
     owner: RaceId,
     design: ShipDesign,
-    current_hull: u32,
+    current_hull: f64,
     location: ShipLocation,
 }
 
@@ -92,7 +122,7 @@ impl Ship {
         Self {
             id,
             owner,
-            current_hull: design.hull_strength(),
+            current_hull: design.shields_mass(), // Hull = shields mass
             design,
             location: ShipLocation::AtPlanet(location),
         }
@@ -112,7 +142,7 @@ impl Ship {
     }
 
     #[allow(dead_code)]
-    pub fn current_hull(&self) -> u32 {
+    pub fn current_hull(&self) -> f64 {
         self.current_hull
     }
 
@@ -126,22 +156,27 @@ impl Ship {
 
     /// Check if ship is destroyed
     pub fn is_destroyed(&self) -> bool {
-        self.current_hull == 0
+        self.current_hull <= 0.0
     }
 
     /// Take damage to the ship
-    pub fn take_damage(&mut self, damage: u32) {
-        self.current_hull = self.current_hull.saturating_sub(damage);
+    pub fn take_damage(&mut self, damage: f64) {
+        self.current_hull = (self.current_hull - damage).max(0.0);
     }
 
-    /// Calculate travel speed based on engine power
-    pub fn travel_speed(&self) -> f64 {
-        self.design.engine_power() as f64 * 10.0
+    /// Calculate travel speed based on design and technology
+    pub fn travel_speed(&self, drive_tech: f64) -> f64 {
+        self.design.speed(drive_tech, 0.0) // No cargo for now
     }
 
-    /// Calculate attack power
-    pub fn attack_power(&self) -> u32 {
-        self.design.cannon_count() * self.design.cannon_power()
+    /// Calculate attack strength with technology
+    pub fn attack_strength(&self, weapons_tech: f64) -> f64 {
+        self.design.attack_strength(weapons_tech)
+    }
+
+    /// Calculate defence strength with technology
+    pub fn defence_strength(&self, shields_tech: f64) -> f64 {
+        self.design.defence_strength(shields_tech, 0.0) // No cargo for now
     }
 }
 
@@ -169,5 +204,68 @@ impl ShipLocation {
     #[allow(dead_code)]
     pub fn is_traveling(&self) -> bool {
         matches!(self, Self::Traveling { .. })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ship_mass_calculation() {
+        // Example from GalaxyNG manual: Fighter 2.48, 1, 1.20, 1.27, 0.00
+        let fighter = ShipDesign::new(2.48, 1, 1.20, 1.27, 0.0);
+        // Mass = 2.48 + 1.20 + 1.27 + 0.0 = 4.95
+        assert!((fighter.ship_mass() - 4.95).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ship_mass_with_multiple_attacks() {
+        // Gunship 4.00, 2, 2.00, 4.00, 0.00
+        let gunship = ShipDesign::new(4.0, 2, 2.0, 4.0, 0.0);
+        // Mass = 4.0 + 2.0 + 4.0 + 0.0 + (2-1) × 2.0/2 = 11.0
+        assert!((gunship.ship_mass() - 11.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_speed_calculation() {
+        // Drone 1.00, 0, 0.00, 0.00, 0.00 should be speed 20.0 at tech 1.0
+        let drone = ShipDesign::new(1.0, 0, 0.0, 0.0, 0.0);
+        let speed = drone.speed(1.0, 0.0);
+        assert!((speed - 20.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_speed_with_cargo() {
+        // Hauler 2.00, 0, 0.00, 0.00, 1.00
+        let hauler = ShipDesign::new(2.0, 0, 0.0, 0.0, 1.0);
+        // Ship mass = 3.0
+        // Speed with no cargo = 20 × 1.0 × (2.0 / 3.0) = 13.33
+        let speed_empty = hauler.speed(1.0, 0.0);
+        assert!((speed_empty - 13.33).abs() < 0.1);
+
+        // Speed with cargo = 20 × 1.0 × (2.0 / (3.0 + 1.1)) = 9.75
+        let speed_loaded = hauler.speed(1.0, 1.1);
+        assert!((speed_loaded - 9.75).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_cargo_capacity() {
+        // Freighter with cargo_mass 10.0
+        let freighter = ShipDesign::new(30.0, 0, 0.0, 9.5, 10.0);
+        // Capacity = 10.0 + 10.0²/10 = 10.0 + 10.0 = 20.0
+        assert_eq!(freighter.base_cargo_capacity(), 20.0);
+    }
+
+    #[test]
+    fn test_attack_and_defence() {
+        let battleship = ShipDesign::new(33.0, 3, 25.0, 16.0, 1.0);
+
+        // Attack = weapons_mass × weapons_tech = 25.0 × 2.0 = 50.0
+        assert_eq!(battleship.attack_strength(2.0), 50.0);
+
+        // Defence calculation is more complex, just check it returns something
+        let defence = battleship.defence_strength(2.0, 0.0);
+        assert!(defence > 0.0);
     }
 }
