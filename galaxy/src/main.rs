@@ -5,6 +5,7 @@ mod game_state;
 mod init;
 mod planet;
 mod race;
+mod racebot;
 mod rendering;
 mod ship;
 

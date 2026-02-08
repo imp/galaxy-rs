@@ -377,4 +377,50 @@ impl GameState {
             }
         }
     }
+
+    /// Execute racebot decisions
+    pub fn execute_racebot_decisions(
+        &mut self,
+        race_id: RaceId,
+        decisions: crate::racebot::RacebotDecisions,
+    ) {
+        // Apply production orders
+        for (planet_id, production_type) in decisions.production_orders {
+            if let Some(planet) = self.galaxy.get_planet_mut(planet_id)
+                && planet.owner() == Some(race_id.0)
+            {
+                planet.set_production_type(production_type);
+            }
+        }
+
+        // Build ships
+        for ship_build in decisions.ship_builds {
+            self.build_ship(ship_build.planet_id, ship_build.design);
+        }
+
+        // Move ships
+        for ship_movement in decisions.ship_movements {
+            self.order_ship_travel(ship_movement.ship_id, ship_movement.destination);
+        }
+    }
+
+    /// Run racebot for a specific race
+    pub fn run_racebot(&mut self, race_id: RaceId) {
+        use crate::racebot::Racebot;
+
+        // Create racebot for this race
+        let racebot = Racebot::new(race_id);
+
+        // Get race reference
+        let race = match self.races.get(&race_id) {
+            Some(r) => r,
+            None => return,
+        };
+
+        // Make decisions (immutable borrows)
+        let decisions = racebot.make_decisions(&self.galaxy, race, &self.ships);
+
+        // Execute decisions (mutable borrows)
+        self.execute_racebot_decisions(race_id, decisions);
+    }
 }
