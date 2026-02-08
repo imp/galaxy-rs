@@ -11,6 +11,8 @@ cargo run --bin galaxy
 ## Controls
 
 - **SPACE** - Advance one turn (AI races make decisions)
+- **Arrow Keys** - Pan camera around the galaxy
+- **Mouse Wheel** - Zoom in/out
 - **ESC** - Exit game
 
 ## Game Features

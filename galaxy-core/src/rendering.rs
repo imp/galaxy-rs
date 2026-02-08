@@ -1,3 +1,4 @@
+use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 
 use crate::game_state::GameState;
@@ -5,7 +6,13 @@ use crate::game_state::GameState;
 const BACKGROUND_COLOR: Color = Color::srgb(0.05, 0.05, 0.1);
 const PLANET_BASE_RADIUS: f32 = 3.0;
 const SHIP_SIZE: f32 = 8.0;
-const ZOOM_SCALE: f32 = 2.0;
+const PAN_SPEED: f32 = 500.0;
+const ZOOM_SPEED: f32 = 0.1;
+const MIN_ZOOM: f32 = 0.1;
+const MAX_ZOOM: f32 = 5.0;
+
+#[derive(Component, Debug)]
+struct MainCamera;
 
 #[derive(Component, Debug)]
 pub struct PlanetMarker {
@@ -52,13 +59,27 @@ impl Plugin for RenderingPlugin {
             .add_systems(Startup, (setup_camera, setup_ui))
             .add_systems(
                 Update,
-                (spawn_planets, spawn_ships, update_ui, handle_input),
+                (
+                    spawn_planets,
+                    spawn_ships,
+                    update_ui,
+                    handle_input,
+                    camera_controls,
+                ),
             );
     }
 }
 
-fn setup_camera(mut commands: Commands<'_, '_>) {
-    commands.spawn(Camera2d);
+fn setup_camera(mut commands: Commands<'_, '_>, game_state: Res<'_, GameState>) {
+    // Calculate initial camera position to center on galaxy
+    let galaxy_width = game_state.galaxy().width() as f32;
+    let galaxy_height = game_state.galaxy().height() as f32;
+
+    commands.spawn((
+        Camera2d,
+        MainCamera,
+        Transform::from_xyz(galaxy_width / 2.0, galaxy_height / 2.0, 0.0),
+    ));
 }
 
 fn setup_ui(mut commands: Commands<'_, '_>) {
@@ -103,7 +124,9 @@ fn setup_ui(mut commands: Commands<'_, '_>) {
                 })
                 .with_children(|parent| {
                     parent.spawn((
-                        Text::new("SPACE: Advance Turn | ESC: Quit"),
+                        Text::new(
+                            "SPACE: Advance Turn | Arrow Keys: Pan | Mouse Wheel: Zoom | ESC: Quit",
+                        ),
                         TextFont {
                             font_size: 20.0,
                             ..default()
@@ -158,11 +181,7 @@ fn spawn_planets(
                 custom_size: Some(Vec2::new(radius * 2.0, radius * 2.0)),
                 ..default()
             },
-            Transform::from_xyz(
-                pos.x() as f32 * ZOOM_SCALE,
-                pos.y() as f32 * ZOOM_SCALE,
-                0.0,
-            ),
+            Transform::from_xyz(pos.x() as f32, pos.y() as f32, 0.0),
         ));
     }
 }
@@ -197,11 +216,7 @@ fn spawn_ships(
                     custom_size: Some(Vec2::new(SHIP_SIZE, SHIP_SIZE)),
                     ..default()
                 },
-                Transform::from_xyz(
-                    pos.x() as f32 * ZOOM_SCALE + 10.0,
-                    pos.y() as f32 * ZOOM_SCALE + 10.0,
-                    1.0,
-                ),
+                Transform::from_xyz(pos.x() as f32 + 10.0, pos.y() as f32 + 10.0, 1.0),
             ));
         }
     }
@@ -242,6 +257,50 @@ fn handle_input(
 
     if keyboard.just_pressed(KeyCode::Escape) {
         exit.send(AppExit::Success);
+    }
+}
+
+fn camera_controls(
+    keyboard: Res<'_, ButtonInput<KeyCode>>,
+    mut scroll_events: EventReader<'_, '_, MouseWheel>,
+    mut camera_query: Query<
+        '_,
+        '_,
+        (&mut Transform, &mut OrthographicProjection),
+        With<MainCamera>,
+    >,
+    time: Res<'_, Time>,
+) {
+    let Ok((mut transform, mut projection)) = camera_query.get_single_mut() else {
+        return;
+    };
+
+    // Handle panning with arrow keys
+    let mut pan_direction = Vec3::ZERO;
+
+    if keyboard.pressed(KeyCode::ArrowLeft) {
+        pan_direction.x -= 1.0;
+    }
+    if keyboard.pressed(KeyCode::ArrowRight) {
+        pan_direction.x += 1.0;
+    }
+    if keyboard.pressed(KeyCode::ArrowUp) {
+        pan_direction.y += 1.0;
+    }
+    if keyboard.pressed(KeyCode::ArrowDown) {
+        pan_direction.y -= 1.0;
+    }
+
+    if pan_direction != Vec3::ZERO {
+        // Pan speed scales with zoom level
+        let pan_speed = PAN_SPEED * projection.scale * time.delta_secs();
+        transform.translation += pan_direction.normalize() * pan_speed;
+    }
+
+    // Handle zoom with mouse wheel
+    for event in scroll_events.read() {
+        let zoom_delta = -event.y * ZOOM_SPEED;
+        projection.scale = (projection.scale + zoom_delta).clamp(MIN_ZOOM, MAX_ZOOM);
     }
 }
 
