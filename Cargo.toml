@@ -1,0 +1,42 @@
+[workspace]
+resolver = "3"
+members = ["galaxy"]
+
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+repository = "https://github.com/imp/galaxy-rs"
+license = "MIT OR Apache-2.0"
+
+
+[workspace.dependencies]
+
+
+[workspace.lints.clippy]
+inefficient_to_string = "warn"
+map_flatten = "warn"
+map_unwrap_or = "warn"
+large_futures = "warn"
+unused_async = "warn"
+use_self = "warn"
+
+
+[workspace.lints.rust]
+future_incompatible = "warn"
+rust_2018_compatibility = "warn"
+rust_2021_compatibility = "warn"
+rust_2024_compatibility = "warn"
+rust_2018_idioms = "warn"
+unused = "warn"
+deprecated_in_future = "warn"
+# non_exhaustive_omitted_patterns = "warn"
+noop_method_call = "warn"
+# unreachable_pub = "warn"
+missing_debug_implementations = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_crate_dependencies = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"
+warnings = "deny"
