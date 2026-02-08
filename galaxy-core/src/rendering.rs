@@ -1,5 +1,6 @@
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 use crate::game_state::GameState;
 
@@ -64,6 +65,7 @@ impl Plugin for RenderingPlugin {
                     spawn_ships,
                     update_ship_positions,
                     update_ui,
+                    update_tooltip,
                     handle_input,
                     camera_controls,
                 ),
@@ -285,15 +287,31 @@ fn update_ui(
     game_state: Res<'_, GameState>,
     mut turn_query: Query<'_, '_, &mut Text, (With<TurnText>, Without<InfoText>)>,
     mut info_query: Query<'_, '_, &mut Text, (With<InfoText>, Without<TurnText>)>,
+    camera_query: Query<'_, '_, (&Camera, &GlobalTransform), With<MainCamera>>,
+    window_query: Query<'_, '_, &Window, With<PrimaryWindow>>,
+    planet_query: Query<'_, '_, (&PlanetMarker, &Transform)>,
+    ship_query: Query<'_, '_, (&ShipMarker, &Transform)>,
 ) {
     if game_state.is_changed() {
         // Update turn counter
         if let Ok(mut text) = turn_query.get_single_mut() {
             **text = format!("Turn: {}", game_state.turn());
         }
+    }
 
-        // Update info text
-        if let Ok(mut text) = info_query.get_single_mut() {
+    // Update info text with stats or tooltip
+    if let Ok(mut text) = info_query.get_single_mut() {
+        // Try to show tooltip first
+        if let Some(tooltip) = get_hover_tooltip(
+            &game_state,
+            &camera_query,
+            &window_query,
+            &planet_query,
+            &ship_query,
+        ) {
+            **text = tooltip;
+        } else {
+            // Show normal stats
             let total_planets = game_state.galaxy().planets().count();
             let total_ships = game_state.ships().count();
             let races = game_state.races().count();
@@ -303,6 +321,78 @@ fn update_ui(
             );
         }
     }
+}
+
+fn get_hover_tooltip(
+    game_state: &GameState,
+    camera_query: &Query<'_, '_, (&Camera, &GlobalTransform), With<MainCamera>>,
+    window_query: &Query<'_, '_, &Window, With<PrimaryWindow>>,
+    planet_query: &Query<'_, '_, (&PlanetMarker, &Transform)>,
+    ship_query: &Query<'_, '_, (&ShipMarker, &Transform)>,
+) -> Option<String> {
+    let window = window_query.get_single().ok()?;
+    let cursor_pos = window.cursor_position()?;
+    let (camera, camera_transform) = camera_query.get_single().ok()?;
+    let world_pos = camera
+        .viewport_to_world_2d(camera_transform, cursor_pos)
+        .ok()?;
+
+    // Check planets
+    for (planet_marker, transform) in planet_query {
+        let planet_pos = Vec2::new(transform.translation.x, transform.translation.y);
+        if world_pos.distance(planet_pos) < 20.0 {
+            let planet = game_state
+                .galaxy()
+                .get_planet(crate::planet::PlanetId(planet_marker.planet_id()))?;
+
+            return Some(if let Some(owner_id) = planet.owner() {
+                if let Some(race) = game_state.get_race(crate::race::RaceId(owner_id)) {
+                    format!(
+                        "{} - {} | Size: {} | Pop: {:.0} | Ind: {:.0} | Mat: {:.0}",
+                        planet.id(),
+                        race.name(),
+                        planet.size(),
+                        planet.population(),
+                        planet.industry(),
+                        planet.materials()
+                    )
+                } else {
+                    format!("{} - Unowned | Size: {}", planet.id(), planet.size())
+                }
+            } else {
+                format!("{} - Unowned | Size: {}", planet.id(), planet.size())
+            });
+        }
+    }
+
+    // Check ships
+    for (ship_marker, transform) in ship_query {
+        let ship_pos = Vec2::new(transform.translation.x, transform.translation.y);
+        if world_pos.distance(ship_pos) < 10.0 {
+            let ship = game_state.get_ship(crate::ship::ShipId(ship_marker.ship_id()))?;
+            let race = game_state.get_race(ship.owner())?;
+
+            let location = match ship.location() {
+                crate::ship::ShipLocation::AtPlanet(pid) => format!("At {:?}", pid),
+                crate::ship::ShipLocation::Traveling { from, to, progress } => {
+                    format!(
+                        "Traveling {:?} -> {:?} ({:.0}%)",
+                        from,
+                        to,
+                        progress * 100.0
+                    )
+                }
+            };
+
+            return Some(format!("{} - {} | {}", ship.id(), race.name(), location));
+        }
+    }
+
+    None
+}
+
+fn update_tooltip() {
+    // Deprecated - tooltip logic moved to update_ui
 }
 
 fn handle_input(
