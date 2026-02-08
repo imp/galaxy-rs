@@ -62,6 +62,7 @@ impl Plugin for RenderingPlugin {
                 (
                     spawn_planets,
                     spawn_ships,
+                    update_ship_positions,
                     update_ui,
                     handle_input,
                     camera_controls,
@@ -203,21 +204,79 @@ fn spawn_ships(
             continue;
         }
 
-        if let Some(planet_id) = ship.location().planet_id()
-            && let Some(planet) = galaxy.get_planet(planet_id)
-        {
-            let pos = planet.position();
-            let color = race_color(ship.owner().0);
+        // Get initial position based on ship location
+        let pos = match ship.location() {
+            crate::ship::ShipLocation::AtPlanet(planet_id) => {
+                if let Some(planet) = galaxy.get_planet(*planet_id) {
+                    planet.position()
+                } else {
+                    continue;
+                }
+            }
+            crate::ship::ShipLocation::Traveling {
+                from,
+                to: _,
+                progress: _,
+            } => {
+                if let Some(planet) = galaxy.get_planet(*from) {
+                    planet.position()
+                } else {
+                    continue;
+                }
+            }
+        };
 
-            commands.spawn((
-                ShipMarker::new(ship.id().0),
-                Sprite {
-                    color,
-                    custom_size: Some(Vec2::new(SHIP_SIZE, SHIP_SIZE)),
-                    ..default()
-                },
-                Transform::from_xyz(pos.x() as f32 + 10.0, pos.y() as f32 + 10.0, 1.0),
-            ));
+        let color = race_color(ship.owner().0);
+
+        commands.spawn((
+            ShipMarker::new(ship.id().0),
+            Sprite {
+                color,
+                custom_size: Some(Vec2::new(SHIP_SIZE, SHIP_SIZE)),
+                ..default()
+            },
+            Transform::from_xyz(pos.x() as f32 + 10.0, pos.y() as f32 + 10.0, 1.0),
+        ));
+    }
+}
+
+fn update_ship_positions(
+    game_state: Res<'_, GameState>,
+    mut ships: Query<'_, '_, (&ShipMarker, &mut Transform)>,
+) {
+    let galaxy = game_state.galaxy();
+
+    for (marker, mut transform) in &mut ships {
+        if let Some(ship) = game_state.get_ship(crate::ship::ShipId(marker.ship_id())) {
+            let (x, y) = match ship.location() {
+                crate::ship::ShipLocation::AtPlanet(planet_id) => {
+                    if let Some(planet) = galaxy.get_planet(*planet_id) {
+                        let pos = planet.position();
+                        (pos.x(), pos.y())
+                    } else {
+                        continue;
+                    }
+                }
+                crate::ship::ShipLocation::Traveling { from, to, progress } => {
+                    if let Some(from_planet) = galaxy.get_planet(*from)
+                        && let Some(to_planet) = galaxy.get_planet(*to)
+                    {
+                        let from_pos = from_planet.position();
+                        let to_pos = to_planet.position();
+
+                        // Interpolate between positions
+                        let x = from_pos.x() + (to_pos.x() - from_pos.x()) * progress;
+                        let y = from_pos.y() + (to_pos.y() - from_pos.y()) * progress;
+
+                        (x, y)
+                    } else {
+                        continue;
+                    }
+                }
+            };
+
+            transform.translation.x = x as f32 + 10.0;
+            transform.translation.y = y as f32 + 10.0;
         }
     }
 }
