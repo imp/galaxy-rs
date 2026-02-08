@@ -201,8 +201,18 @@ impl Racebot {
             0.0
         };
 
+        let avg_materials_per_planet = if !state.owned_planets.is_empty() {
+            state.total_materials / state.owned_planets.len() as f64
+        } else {
+            0.0
+        };
+
         // Get personality-based capital target
         let capital_target = self.personality.capital_target();
+
+        // Materials target: rough estimate based on ship costs
+        // Ships cost ~10-25 materials depending on design
+        let materials_target = 50.0; // Enough for several ships
 
         // Build capital if below target and can afford it
         if avg_capital_per_planet < capital_target {
@@ -212,8 +222,22 @@ impl Racebot {
             }
         }
 
-        // Build materials as fallback
-        ProductionType::Materials
+        // Build materials if below target
+        if avg_materials_per_planet < materials_target {
+            return ProductionType::Materials;
+        }
+
+        // Prioritize materials for ship building if we have decent industry
+        if avg_capital_per_planet >= capital_target * 0.7 {
+            return ProductionType::Materials;
+        }
+
+        // Build capital as fallback (long-term growth)
+        if planet.materials() >= 1.0 && planet.production() >= 5.0 {
+            ProductionType::Capital
+        } else {
+            ProductionType::Materials
+        }
     }
 
     /// Decide what ships to build this turn
@@ -222,18 +246,38 @@ impl Racebot {
 
         // Use personality to determine ship design and fleet size
         let ship_design = self.personality.design_ship(race);
-        let max_ships = (state.owned_planets.len() as f64
-            * self.personality.ships_per_planet_ratio())
+        let ship_cost = ship_design.material_cost();
+
+        // Dynamic fleet cap: increases as empire grows
+        // Base cap + (owned_planets * ratio)
+        let base_cap = 5.0; // Always want at least 5 ships
+        let max_ships = (base_cap
+            + state.owned_planets.len() as f64 * self.personality.ships_per_planet_ratio())
         .ceil() as usize;
 
         // Only build if under fleet cap
-        if state.owned_ships.len() < max_ships {
-            for planet_id in &state.owned_planets {
+        if state.owned_ships.len() >= max_ships {
+            return builds;
+        }
+
+        let ships_needed = max_ships - state.owned_ships.len();
+        let mut ships_queued = 0;
+
+        // Build ships from planets that can afford them
+        for planet_id in &state.owned_planets {
+            if ships_queued >= ships_needed {
+                break;
+            }
+
+            // Check if this planet has enough materials (approximate - actual check in
+            // execute) We check total_materials to see if empire can afford it
+            if state.total_materials >= ship_cost * (ships_queued as f64 + 1.0) {
                 builds.push(ShipBuild {
                     planet_id: *planet_id,
                     design: ship_design,
                     name: format!("{:?}-{}", self.personality, planet_id.0),
                 });
+                ships_queued += 1;
             }
         }
 
