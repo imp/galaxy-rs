@@ -86,10 +86,10 @@ impl Galaxy {
         self.planets_owned_by(race_id).count()
     }
 
-    /// Process material production for all planets
-    pub fn produce_materials(&mut self) {
+    /// Process production for all planets
+    pub fn execute_production(&mut self) {
         for planet in self.planets.values_mut() {
-            planet.produce_materials();
+            planet.execute_production();
         }
     }
 }

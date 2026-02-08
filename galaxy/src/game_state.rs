@@ -90,8 +90,8 @@ impl GameState {
     pub fn advance_turn(&mut self) {
         self.turn += 1;
 
-        // 1. Produce materials on all planets
-        self.galaxy.produce_materials();
+        // 1. Execute production on all planets
+        self.galaxy.execute_production();
 
         // 2. Process technology advancement per planet
         self.process_technology_advancement();
