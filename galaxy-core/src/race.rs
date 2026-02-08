@@ -1,12 +1,14 @@
+use std::fmt;
+
 use bevy::prelude::*;
 
 /// Unique identifier for a race
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
 pub struct RaceId(pub u32);
 
-impl std::fmt::Display for RaceId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Race{}", self.0)
+impl fmt::Display for RaceId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("RaceId").field(&self.0).finish()
     }
 }
 

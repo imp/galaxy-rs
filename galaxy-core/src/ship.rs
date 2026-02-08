@@ -1,3 +1,5 @@
+use std::fmt;
+
 use bevy::prelude::*;
 
 use crate::planet::PlanetId;
@@ -7,9 +9,9 @@ use crate::race::RaceId;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
 pub struct ShipId(pub u32);
 
-impl std::fmt::Display for ShipId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Ship{}", self.0)
+impl fmt::Display for ShipId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("ShipId").field(&self.0).finish()
     }
 }
 

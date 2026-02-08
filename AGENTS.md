@@ -74,6 +74,9 @@ Use it instead of `#[allow()]` to get automatic cleanup warnings.
 - **Encapsulation**: Use private fields with public getters/setters
 - **No public struct fields**: Prefer accessor methods for better API control
 - **Bevy Components**: Derive `Component` for entities, `Resource` for singletons
+- **Display for tuple structs**: Use `debug_tuple()` instead of manual formatting
+  - Example: `f.debug_tuple("RaceId").field(&self.0).finish()` gives `RaceId(42)`
+  - Consistent with Debug output and easier to maintain
 - **Import style**: One import per line (no grouped imports like `use foo::{A, B}`)
   - Example: `use std::fmt::Display;` and `use std::fmt::Debug;` on separate lines
   - rustfmt handles this automatically with default settings
